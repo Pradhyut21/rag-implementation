@@ -1,0 +1,43 @@
+# Dependency directories
+node_modules/
+venv/
+.venv/
+env/
+dist/
+build/
+
+# Environment configurations and secrets
+.env
+.env.*
+
+# Python caches and compiles
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local databases and runtime indexing data
+agentic_rag_fastapi/data/
+**/data/uploads/
+**/data/indexes/
+**/data/debug_runs/
+*.db
+*.index
+*.pkl
+
+# IDEs and workspace configurations
+.vscode/
+.idea/
+.project
+.settings/
+.gemini/
+.agents/
+walkthrough.md
+task.md
+implementation_plan.md
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

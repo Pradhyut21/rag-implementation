@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-07-06 17:27:24",
+  "doc_id": "4bd2fe56",
+  "metrics": {
+    "avg_reasoning_stages": 0,
+    "avg_branches_generated": 3.0,
+    "avg_branch_score": 0.457,
+    "winning_branch_accuracy": 0.543,
+    "context_sufficiency_before_tot": 0.5,
+    "context_sufficiency_after_tot": 0.5,
+    "retrieval_improvement": 0.0
+  },
+  "results": [
+    {
+      "mode": "standard",
+      "query": "Explain Google's Agentic RAG architecture and the role of the Sufficient Context Agent.",
+      "sufficient": true
+    },
+    {
+      "mode": "standard",
+      "query": "What latency measurements did Google report for the Sufficient Context Agent?",
+      "sufficient": false
+    },
+    {
+      "mode": "tot",
+      "query": "Explain Google's Agentic RAG architecture and the role of the Sufficient Context Agent.",
+      "sufficient": true,
+      "session_id": "90e432c9-a6a2-4db5-9d27-8d0dc1ea5e9a",
+      "branches_count": 3,
+      "winning_score": 0.836
+    },
+    {
+      "mode": "tot",
+      "query": "What latency measurements did Google report for the Sufficient Context Agent?",
+      "sufficient": false,
+      "session_id": "7b5f994f-8de4-4a86-8fa4-e67262938a89",
+      "branches_count": 3,
+      "winning_score": 0.251
+    }
+  ]
+}
