@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import agents.llm as llm
 from agents.llm import fast_generate
 from utils.json_utils import extract_json_object
 

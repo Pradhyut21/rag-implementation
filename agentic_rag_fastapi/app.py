@@ -8,7 +8,9 @@ import uuid
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from groq import AuthenticationError, GroqError
 import nltk
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -18,6 +20,10 @@ from sse_starlette.sse import EventSourceResponse
 from agents.agentic_loop import agentic_rag, vanilla_rag
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
+from auth import COOKIE_NAME, authenticate_user, create_access_token, get_current_user
+from observability import ObservabilityMiddleware, setup_observability
+from observability.routes import router as observability_router
+from observability.storage.db import get_reasoning_chain_details, get_reasoning_tree_details
 from rag.embeddings import EmbeddingModel
 from rag.ingestion import chunk_text, load_document
 from rag.retrieval import retrieve
@@ -44,9 +50,6 @@ logging.basicConfig(
 logger = logging.getLogger("agentic_rag_api")
 
 # ── Observability setup ───────────────────────────────────────
-from observability import ObservabilityMiddleware, setup_observability
-from observability.routes import router as observability_router
-
 setup_observability()
 
 # ── NLTK ─────────────────────────────────────────────────────
@@ -57,9 +60,6 @@ except Exception as e:
     logger.warning(f"NLTK download failed: {e}")
 
 # ── Rate Limiter ──────────────────────────────────────────────
-from fastapi.responses import JSONResponse
-from groq import AuthenticationError, GroqError
-
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/hour"])
 
 # ── FastAPI app ───────────────────────────────────────────────
@@ -75,7 +75,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(AuthenticationError)
-async def groq_auth_error_handler(request: Request, exc: AuthenticationError):
+async def groq_auth_error_handler(request: Request, exc: AuthenticationError) -> JSONResponse:
     logger.error(f"Groq AuthenticationError: {exc}")
     return JSONResponse(
         status_code=401,
@@ -83,11 +83,11 @@ async def groq_auth_error_handler(request: Request, exc: AuthenticationError):
     )
 
 @app.exception_handler(GroqError)
-async def groq_generic_error_handler(request: Request, exc: GroqError):
+async def groq_generic_error_handler(request: Request, exc: GroqError) -> JSONResponse:
     logger.error(f"Groq API error: {exc}")
     return JSONResponse(
         status_code=502,
-        content={"detail": f"Groq LLM service error: {str(exc)}"},
+        content={"detail": f"Groq LLM service error: {exc!s}"},
     )
 
 app.add_middleware(ObservabilityMiddleware)
@@ -107,9 +107,7 @@ app.add_middleware(
 
 app.include_router(observability_router)
 
-# ── JWT Auth (replaces shared API key) ────────────────────────
-from auth import COOKIE_NAME, authenticate_user, create_access_token, get_current_user
-
+# ── JWT Auth Config ───────────────────────────────────────────
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 if DEMO_MODE:
@@ -639,7 +637,6 @@ def rewrite_query_endpoint(
 
 
 # ── Reasoning Telemetry ───────────────────────────────────────
-from observability.storage.db import get_reasoning_chain_details, get_reasoning_tree_details
 
 
 @app.get("/reasoning/cot/{session_id}", tags=["Reasoning"])

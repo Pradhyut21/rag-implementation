@@ -46,7 +46,7 @@ def _process_single_subquery(
 ) -> dict[str, Any]:
     """Worker function for parallel fanout — runs in thread pool."""
     # Skip rewriter LLM call: planner sub-queries are already retrieval-ready.
-    # The rewriter added 2–5 extra LLM roundtrips per request with negligible gain.
+    # The rewriter added 2-5 extra LLM roundtrips per request with negligible gain.
     retrieved = retrieve(sq, embedding_model, vector_store, top_k=top_k)
     return {
         "sub_query": sq,
