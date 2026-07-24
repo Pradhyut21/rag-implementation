@@ -11,7 +11,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -139,7 +139,7 @@ class Settings(BaseSettings):
     )
 
     # ── Server ────────────────────────────────────────────────
-    host: str = Field(default="0.0.0.0", description="Uvicorn bind host")
+    host: str = Field(default="0.0.0.0", description="Uvicorn bind host")  # noqa: S104
     port: int = Field(default=8002, ge=1024, le=65535, description="Uvicorn bind port")
     workers: int = Field(default=2, ge=1, le=32, description="Number of uvicorn workers")
     reload: bool = Field(default=False, description="Enable uvicorn auto-reload (dev only)")
@@ -158,7 +158,7 @@ class Settings(BaseSettings):
 
     @field_validator("chunk_overlap")
     @classmethod
-    def overlap_less_than_chunk(cls, v: int, info) -> int:
+    def overlap_less_than_chunk(cls, v: int, info: ValidationInfo) -> int:
         """Ensure chunk_overlap < chunk_size."""
         chunk_size = info.data.get("chunk_size", 6)
         if v >= chunk_size:

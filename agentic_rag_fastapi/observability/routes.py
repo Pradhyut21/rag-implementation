@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -13,16 +14,16 @@ router = APIRouter(prefix="/observability", tags=["Observability"])
 @router.get("/sessions")
 def get_sessions(
     limit: int = Query(50, ge=1), offset: int = Query(0, ge=0), status: str | None = None
-):
+) -> dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         if status:
             cursor.execute(
                 """
-                SELECT * FROM sessions 
-                WHERE status = ? 
-                ORDER BY timestamp DESC 
+                SELECT * FROM sessions
+                WHERE status = ?
+                ORDER BY timestamp DESC
                 LIMIT ? OFFSET ?
             """,
                 (status, limit, offset),
@@ -30,8 +31,8 @@ def get_sessions(
         else:
             cursor.execute(
                 """
-                SELECT * FROM sessions 
-                ORDER BY timestamp DESC 
+                SELECT * FROM sessions
+                ORDER BY timestamp DESC
                 LIMIT ? OFFSET ?
             """,
                 (limit, offset),

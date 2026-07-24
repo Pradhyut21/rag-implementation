@@ -328,7 +328,7 @@ def run_evaluation():
     errors = [r for r in all_results if r.get("error")]
 
     print("\n══════════════════════════════════════════════")
-    print("  EVALUATION RESULTS SUMMARY (15 queries × 3 modes)")
+    print("  EVALUATION RESULTS SUMMARY (15 queries x 3 modes)")
     print("══════════════════════════════════════════════")
     for mode in modes:
         m = metrics[mode]

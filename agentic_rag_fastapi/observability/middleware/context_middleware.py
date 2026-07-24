@@ -2,8 +2,11 @@ import json
 import logging
 import uuid
 
+from collections.abc import Awaitable, Callable
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import Response
 
 from observability.tracing.context import init_trace_context
 
@@ -11,7 +14,9 @@ logger = logging.getLogger("observability.middleware")
 
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         # 1. Extract IDs from headers or generate new ones
         correlation_id = request.headers.get("x-correlation-id") or request.headers.get(
             "X-Correlation-ID"
