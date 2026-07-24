@@ -8,17 +8,16 @@ FAISS disk I/O) are mocked by default so unit tests run offline.
 
 from __future__ import annotations
 
+from collections.abc import Generator
 import io
 import json
 import os
-import tempfile
 from pathlib import Path
-from typing import Generator
 from unittest.mock import MagicMock, patch
 
+from fastapi.testclient import TestClient
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # Minimal environment so app imports succeed without a real .env file
@@ -44,11 +43,14 @@ def client() -> Generator[TestClient, None, None]:
     mock_choice.message.content = '["What is RAG?", "How does the feedback loop work?"]'
     mock_groq.chat.completions.create.return_value = MagicMock(choices=[mock_choice])
 
-    with patch("agents.llm.Groq", return_value=mock_groq):
+    mock_st = MagicMock()
+    mock_st.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
+
+    with patch("agents.llm.Groq", return_value=mock_groq), patch("rag.embeddings.SentenceTransformer", return_value=mock_st):
         from app import app
 
-        with TestClient(app, raise_server_exceptions=False) as tc:
-            yield tc
+        tc = TestClient(app, raise_server_exceptions=False)
+        yield tc
 
 
 @pytest.fixture(scope="session")

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Any, Optional
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ReasoningMode(str, Enum):
@@ -52,8 +53,8 @@ class SufficientContextResult(BaseModel):
     is_context_sufficient: bool
     missing_information: list[str]
     feedback_log: str
-    reasoning_summary: Optional[str] = None
-    evidence_type: Optional[str] = None
+    reasoning_summary: str | None = None
+    evidence_type: str | None = None
 
 
 class TraceItem(BaseModel):
@@ -78,11 +79,11 @@ class AskResponse(BaseModel):
     context_sufficient: bool
     missing_information: list[str]
     citations: list[CitationInfo]
-    trace: Optional[list[dict[str, Any]]] = None
-    final_context: Optional[str] = None
-    session_id: Optional[str] = None
-    evidence_type: Optional[str] = None
-    fallback_used: Optional[bool] = False
+    trace: list[dict[str, Any]] | None = None
+    final_context: str | None = None
+    session_id: str | None = None
+    evidence_type: str | None = None
+    fallback_used: bool | None = False
 
 
 class VanillaAskResponse(BaseModel):
@@ -90,7 +91,7 @@ class VanillaAskResponse(BaseModel):
     answer: str
     retrieved_chunks: list[dict[str, Any]]
     context: str
-    citations: Optional[list[CitationInfo]] = None
+    citations: list[CitationInfo] | None = None
 
 
 class UploadDocResponse(BaseModel):
@@ -108,7 +109,7 @@ class DocumentInfoResponse(BaseModel):
     chunk_size: int
     overlap: int
     embedding_model: str
-    ocr_used: Optional[bool] = False
+    ocr_used: bool | None = False
 
 
 class PlanRequest(BaseModel):
@@ -124,7 +125,7 @@ class PlanRequest(BaseModel):
 
 class PlanResponse(BaseModel):
     query: str
-    sub_queries: List[str]
+    sub_queries: list[str]
 
 
 class RewriteRequest(BaseModel):
@@ -164,8 +165,8 @@ class RetrieveOnlyChunk(BaseModel):
 
 class RetrieveOnlyResponse(BaseModel):
     original_query: str
-    rewritten_query: Optional[str] = None
-    retrieved_chunks: List[RetrieveOnlyChunk]
+    rewritten_query: str | None = None
+    retrieved_chunks: list[RetrieveOnlyChunk]
 
 
 class AskDebugResponse(BaseModel):
@@ -178,5 +179,5 @@ class AskDebugResponse(BaseModel):
     trace: list[dict[str, Any]]
     final_context: str
     fallback_used: bool
-    session_id: Optional[str] = None
-    evidence_type: Optional[str] = None
+    session_id: str | None = None
+    evidence_type: str | None = None
