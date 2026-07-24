@@ -16,5 +16,5 @@ passlib[bcrypt]
 pillow
 pytesseract
 unstructured[pdf]
-aiofiles
+pydantic-settings
 sse-starlette

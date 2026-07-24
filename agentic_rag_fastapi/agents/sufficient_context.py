@@ -9,15 +9,6 @@ to answer the user's query. Returns a structured verdict with:
 - ``feedback_log``: str — targeted search query for the next iteration
 - ``reasoning_summary``: str — explanation of the verdict
 - ``evidence_type``: "explicit" | "partial" | "missing"
-
-Evidence types
---------------
-explicit
-    The exact answer is directly stated in the retrieved context.
-partial
-    The topic is covered but key details are missing — retry recommended.
-missing
-    The context contains no relevant information — retry with different queries.
 """
 from __future__ import annotations
 
@@ -25,7 +16,7 @@ import json
 import logging
 from typing import Any
 
-from agents.llm import safe_generate
+import agents.llm as llm
 from utils.json_utils import extract_json_object
 
 logger = logging.getLogger("agentic_rag.sufficient_context")
@@ -48,98 +39,78 @@ INTERMEDIATE DRAFT (generated from the context):
 
 Classify the evidence quality using exactly one of three types:
 - "explicit"  → The exact answer is directly and clearly stated in the context.
-- "partial"   → The topic is discussed but key details are absent.
+- "partial"   → The topic is covered, but specific metrics, numbers, or facts asked by the user are missing.
 - "missing"   → The context contains no relevant information.
 
-Return ONLY a valid JSON object (no explanation, no markdown) with these exact keys:
-{{
-  "is_context_sufficient": <true if explicit, false if partial or missing>,
-  "missing_information": [<list of specific things not found, empty if explicit>],
-  "feedback_log": "<one targeted search query to retrieve missing info, empty if explicit>",
-  "reasoning_summary": "<one-sentence explanation of your verdict>",
-  "evidence_type": "<explicit|partial|missing>"
-}}"""
+Respond with a single valid JSON object with these keys:
+  "is_context_sufficient": bool,
+  "missing_information": list of strings,
+  "feedback_log": string,
+  "reasoning_summary": string,
+  "evidence_type": string
+
+Do not include any explanation outside the JSON object.
+"""
 
 
 def sufficient_context_agent(
     query: str,
     context: str,
-    intermediate_draft: str,
+    intermediate_draft: str = "",
 ) -> dict[str, Any]:
     """
-    Evaluate whether retrieved context is sufficient to answer the query.
+    Audit retrieved context against the user query.
 
     Args:
-        query: The original user question.
-        context: The aggregated text retrieved from FAISS.
-        intermediate_draft: An intermediate draft answer generated from the context.
+        query: The raw user question.
+        context: The aggregated retrieved text chunks.
+        intermediate_draft: Optional draft answer generated so far.
 
     Returns:
-        A dict with keys:
+        A dict containing:
         - ``is_context_sufficient`` (bool)
         - ``missing_information`` (list[str])
         - ``feedback_log`` (str)
         - ``reasoning_summary`` (str)
         - ``evidence_type`` ("explicit" | "partial" | "missing")
-
-    Notes:
-        On any parse failure, returns a conservative fallback with
-        ``is_context_sufficient=False`` and ``evidence_type="missing"``.
-        This triggers another retrieval iteration rather than producing
-        a hallucinated answer.
     """
     prompt = _SC_PROMPT_TEMPLATE.format(
         query=query,
-        context=context[:8000],  # Limit context to avoid token overflow
+        context=context[:8000],
         draft=intermediate_draft[:2000],
     )
 
-    raw_response = safe_generate(prompt)
+    raw_response = llm.safe_generate(prompt)
 
     try:
         data = extract_json_object(raw_response)
-
-        # Handle LLM wrapping result in a list
-        if isinstance(data, list) and data:
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
             data = data[0]
+        if isinstance(data, dict):
+            evidence_type = str(data.get("evidence_type", "")).lower()
+            if evidence_type not in VALID_EVIDENCE_TYPES:
+                evidence_type = "missing"
 
-        if not isinstance(data, dict):
-            raise TypeError(f"Expected dict, got {type(data).__name__}")
+            missing_info = data.get("missing_information", [])
+            if isinstance(missing_info, str):
+                missing_info = [missing_info] if missing_info else []
+            elif not isinstance(missing_info, list):
+                missing_info = []
 
-        # Normalise evidence_type — enforce known values
-        evidence_type = str(data.get("evidence_type", "missing")).lower().strip()
-        if evidence_type not in VALID_EVIDENCE_TYPES:
-            logger.warning("Unknown evidence_type %r — defaulting to 'missing'", evidence_type)
-            evidence_type = "missing"
-
-        # Coerce missing_information to list[str]
-        missing_raw = data.get("missing_information", [])
-        if isinstance(missing_raw, str):
-            missing_info: list[str] = [missing_raw] if missing_raw else []
-        elif isinstance(missing_raw, list):
-            missing_info = [str(x) for x in missing_raw]
-        else:
-            missing_info = []
-
-        return {
-            "is_context_sufficient": bool(data.get("is_context_sufficient", False)),
-            "missing_information": missing_info,
-            "feedback_log": str(data.get("feedback_log", "")),
-            "reasoning_summary": str(data.get("reasoning_summary", "")),
-            "evidence_type": evidence_type,
-        }
-
+            return {
+                "is_context_sufficient": bool(data.get("is_context_sufficient", False)),
+                "missing_information": [str(x) for x in missing_info],
+                "feedback_log": str(data.get("feedback_log", "")),
+                "reasoning_summary": str(data.get("reasoning_summary", "")),
+                "evidence_type": evidence_type,
+            }
     except Exception as exc:
-        logger.error(
-            "SC Agent failed to parse LLM response: %s | raw=%r",
-            exc,
-            raw_response[:300],
-        )
-        # Conservative fallback: treat as insufficient to avoid hallucination
-        return {
-            "is_context_sufficient": False,
-            "missing_information": ["Context evaluation failed — retry retrieval."],
-            "feedback_log": query,
-            "reasoning_summary": f"Failed to parse SC Agent response: {exc}",
-            "evidence_type": "missing",
-        }
+        logger.warning("SC Agent failed to parse response: %s | raw=%r", exc, raw_response[:200])
+
+    return {
+        "is_context_sufficient": False,
+        "missing_information": ["Failed to parse sufficiency audit response"],
+        "feedback_log": f"Re-query context for: {query}",
+        "reasoning_summary": "Failed to parse SC response — defaulting to insufficient.",
+        "evidence_type": "missing",
+    }
