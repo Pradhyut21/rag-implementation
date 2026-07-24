@@ -1,8 +1,7 @@
+from collections.abc import Awaitable, Callable
 import json
 import logging
 import uuid
-
-from collections.abc import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

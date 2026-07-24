@@ -1,3 +1,4 @@
+import contextlib
 import json
 from typing import Any
 
@@ -41,13 +42,13 @@ def get_sessions(
         sessions = [dict(row) for row in cursor.fetchall()]
         return {"sessions": sessions}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         conn.close()
 
 
 @router.get("/session/{session_id}")
-def get_session_details(session_id: str):
+def get_session_details(session_id: str) -> dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -63,12 +64,10 @@ def get_session_details(session_id: str):
         spans = []
         for r in cursor.fetchall():
             span = dict(r)
-            try:
+            with contextlib.suppress(Exception):
                 span["inputs"] = json.loads(span["inputs"]) if span["inputs"] else {}
                 span["outputs"] = json.loads(span["outputs"]) if span["outputs"] else {}
                 span["extra_data"] = json.loads(span["extra_data"]) if span["extra_data"] else {}
-            except Exception:
-                pass
             spans.append(span)
 
         # Get events
@@ -78,10 +77,8 @@ def get_session_details(session_id: str):
         events = []
         for r in cursor.fetchall():
             ev = dict(r)
-            try:
+            with contextlib.suppress(Exception):
                 ev["extra_data"] = json.loads(ev["extra_data"]) if ev["extra_data"] else {}
-            except Exception:
-                pass
             events.append(ev)
 
         # Get errors
@@ -94,20 +91,20 @@ def get_session_details(session_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     finally:
         conn.close()
 
 
 @router.get("/traces")
-def get_traces(limit: int = 50, offset: int = 0):
+def get_traces(limit: int = 50, offset: int = 0) -> dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
             """
-            SELECT * FROM spans 
-            ORDER BY timestamp DESC 
+            SELECT * FROM spans
+            ORDER BY timestamp DESC
             LIMIT ? OFFSET ?
         """,
             (limit, offset),
@@ -115,12 +112,10 @@ def get_traces(limit: int = 50, offset: int = 0):
         spans = []
         for r in cursor.fetchall():
             span = dict(r)
-            try:
+            with contextlib.suppress(Exception):
                 span["inputs"] = json.loads(span["inputs"]) if span["inputs"] else {}
                 span["outputs"] = json.loads(span["outputs"]) if span["outputs"] else {}
                 span["extra_data"] = json.loads(span["extra_data"]) if span["extra_data"] else {}
-            except Exception:
-                pass
             spans.append(span)
         return {"traces": spans}
     except Exception as e:
