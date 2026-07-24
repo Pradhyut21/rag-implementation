@@ -162,3 +162,5 @@ export const api = {
   getReasoningToT: (sessionId) => client.get(`/reasoning/tot/${sessionId}`),
   getReasoningTree: (sessionId) => client.get(`/reasoning/tree/${sessionId}`),
 };
+
+export default client;
