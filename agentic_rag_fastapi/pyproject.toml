@@ -1,0 +1,154 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "agentic-rag-platform"
+version = "3.0.0"
+description = "Enterprise Self-Correcting Agentic RAG Pipeline with CoT, ToT, and Full Observability"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Agentic RAG Team", email = "team@agentic-rag.dev"},
+]
+keywords = ["rag", "llm", "agents", "fastapi", "faiss", "groq", "observability"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+# ── Pytest configuration ──────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+    "-v",
+    "--color=yes",
+    "--cov=.",
+    "--cov-report=term-missing",
+    "--cov-report=xml:coverage.xml",
+    "--cov-report=html:htmlcov",
+    "--cov-fail-under=70",
+]
+markers = [
+    "unit: Unit tests (no I/O, all external calls mocked)",
+    "integration: Integration tests (require running backend)",
+    "slow: Tests that take >5s to run",
+    "llm: Tests that call the LLM API",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pydantic.*",
+    "ignore::DeprecationWarning:fastapi.*",
+]
+
+# ── Coverage configuration ────────────────────────────────────
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    "venv/*",
+    ".venv/*",
+    "*/migrations/*",
+    "setup.py",
+    "conftest.py",
+    "evaluate_agentic_rag.py",
+    "data/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "\\.\\.\\.",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+
+# ── Ruff (linter + formatter, replaces flake8/isort/black) ────
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["."]
+exclude = [
+    ".git", ".venv", "venv", "__pycache__", "*.egg-info",
+    "data", "htmlcov", "dist", "build",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "N",    # pep8-naming
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    "ANN",  # flake8-annotations (type hints)
+    "S",    # bandit (security)
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "ANN101",  # Missing type annotation for `self`
+    "ANN102",  # Missing type annotation for `cls`
+    "ANN401",  # Dynamically typed expressions (Any)
+    "S101",    # Use of assert in tests
+    "S105",    # Hardcoded password string — acceptable for env defaults
+    "B008",    # Do not perform function calls in default arguments (FastAPI Depends pattern)
+    "E501",    # Line too long (handled by formatter)
+]
+per-file-ignores = {"tests/*" = ["ANN", "S", "N"], "evaluate_agentic_rag.py" = ["ANN", "S", "T201"]}
+
+[tool.ruff.lint.isort]
+known-first-party = ["agents", "rag", "observability", "utils"]
+force-sort-within-sections = true
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod", "validator", "root_validator"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# ── Mypy (static type checking) ───────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["venv/", "tests/", "data/", "evaluate_agentic_rag.py"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["faiss.*", "sentence_transformers.*", "groq.*", "nltk.*"]
+ignore_missing_imports = true
+
+# ── Bandit (security scanning) ────────────────────────────────
+[tool.bandit]
+targets = ["."]
+exclude_dirs = ["tests", "venv", ".venv", "data"]
+skips = ["B101", "B104"]   # assert, binding to 0.0.0.0 (intentional for dev)
+severity = "medium"
+confidence = "medium"

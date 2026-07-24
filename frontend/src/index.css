@@ -1,25 +1,403 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .glass {
-    @apply bg-panel/80 backdrop-blur-md border border-border;
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: #FFFFFF;
+    color: #1A1A1A;
+    margin: 0;
+    padding: 0;
+  }
+
+  ::selection {
+    background: rgba(124, 58, 237, 0.15);
+    color: #6D28D9;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F5F5F5; }
 ::-webkit-scrollbar-thumb {
-  background-color: #2a2d36; /* border color */
-  border-radius: 9999px;
+  background: #D1D5DB;
+  border-radius: 99px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background-color: #4b5563; /* gray-600 */
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* ── Perspective & 3D ──────────────────────────────────────── */
+.perspective-1000 { perspective: 1000px; }
+.perspective-1200 { perspective: 1200px; }
+.perspective-2000 { perspective: 2000px; }
+.transform-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+
+/* 3D Card hover effect */
+.card-3d {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+}
+.card-3d:hover {
+  transform: translateY(-8px) rotateX(4deg) rotateY(-2deg);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.06);
+}
+
+/* ── Glassmorphism (light) ─────────────────────────────────── */
+.glass-white {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.glass-light {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 229, 229, 0.8);
+}
+
+/* ── Gradient Text ─────────────────────────────────────────── */
+.text-brand-gradient {
+  background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-brand-gradient-warm {
+  background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Shimmer skeleton ──────────────────────────────────────── */
+.shimmer {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Scroll reveal ─────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Typing dots ───────────────────────────────────────────── */
+.typing-dot {
+  animation: typing 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ── Morphing blob ─────────────────────────────────────────── */
+.morph-blob {
+  animation: morph 8s ease-in-out infinite;
+}
+@keyframes morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50% { border-radius: 50% 60% 30% 60% / 40% 30% 70% 50%; }
+  75% { border-radius: 60% 40% 60% 30% / 60% 70% 30% 40%; }
+}
+
+/* ── Float animations ──────────────────────────────────────── */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-18px) rotate(3deg); }
+  66% { transform: translateY(-8px) rotate(-2deg); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-24px) rotate(-4deg); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-12px) rotate(2deg) scale(1.05); }
+}
+
+.float-a { animation: floatA 6s ease-in-out infinite; }
+.float-b { animation: floatB 8s ease-in-out infinite; }
+.float-c { animation: floatC 5s ease-in-out infinite; }
+
+/* ── Orbit animations ──────────────────────────────────────── */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(130px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(130px) rotate(-360deg); }
+}
+@keyframes orbit2 {
+  from { transform: rotate(180deg) translateX(180px) rotate(-180deg); }
+  to { transform: rotate(540deg) translateX(180px) rotate(-540deg); }
+}
+@keyframes orbit3 {
+  from { transform: rotate(60deg) translateX(100px) rotate(-60deg); }
+  to { transform: rotate(420deg) translateX(100px) rotate(-420deg); }
+}
+.orbit-1 { animation: orbit 10s linear infinite; }
+.orbit-2 { animation: orbit2 14s linear infinite; }
+.orbit-3 { animation: orbit3 8s linear infinite; }
+
+/* ── Glow effects ──────────────────────────────────────────── */
+.glow-brand {
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.3), 0 0 80px rgba(124, 58, 237, 0.1);
+}
+.glow-blue {
+  box-shadow: 0 0 40px rgba(37, 99, 235, 0.25);
+}
+
+/* ── Grid pattern ──────────────────────────────────────────── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ── Dot pattern ───────────────────────────────────────────── */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ── Chat app styles ───────────────────────────────────────── */
+.chat-input {
+  border: 1.5px solid #E5E5E5;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chat-input:focus {
+  outline: none;
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* ── Prose (markdown) ──────────────────────────────────────── */
+.prose-claude h1, .prose-claude h2, .prose-claude h3 {
+  color: #111827;
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+.prose-claude h1 { font-size: 1.35em; }
+.prose-claude h2 { font-size: 1.15em; }
+.prose-claude h3 { font-size: 1em; color: #374151; }
+.prose-claude p { color: #374151; line-height: 1.75; margin-bottom: 0.75em; font-size: 0.9375rem; }
+.prose-claude ul, .prose-claude ol { padding-left: 1.5em; margin-bottom: 0.8em; }
+.prose-claude li { color: #374151; line-height: 1.7; margin-bottom: 0.35em; }
+.prose-claude strong { color: #111827; font-weight: 600; }
+.prose-claude code {
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 5px;
+  padding: 1px 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
+  color: #6D28D9;
+}
+.prose-claude pre {
+  background: #1E1E2E;
+  border: 1px solid #3F3F5F;
+  border-radius: 10px;
+  padding: 1em 1.25em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.prose-claude pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #A5F3FC;
+  font-size: 0.85em;
+}
+.prose-claude blockquote {
+  border-left: 3px solid #7C3AED;
+  padding: 0.5em 1em;
+  background: #F5F3FF;
+  border-radius: 0 8px 8px 0;
+  color: #4B5563;
+  margin: 1em 0;
+  font-style: italic;
+}
+.prose-claude table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+.prose-claude th { background: #F5F3FF; color: #4B5563; font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid #E5E7EB; font-size: 0.825em; }
+.prose-claude td { padding: 8px 12px; border: 1px solid #E5E7EB; color: #374151; font-size: 0.875em; }
+.prose-claude tr:nth-child(even) td { background: #FAFAFA; }
+
+/* ── Button base ───────────────────────────────────────────── */
+.btn-brand {
+  background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-brand:hover {
+  background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
+}
+.btn-brand:active { transform: translateY(0); }
+
+/* ── Accessibility: Focus rings ────────────────────────────── */
+/* Visible focus ring for keyboard navigation — replaces Tailwind's
+   outline removal while keeping aesthetics clean for mouse users */
+:focus-visible {
+  outline: 2px solid #7C3AED;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove focus ring for mouse/touch (only show for keyboard) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip-to-content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  background: #7C3AED;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 8px 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
+/* ── Accessibility: Reduced motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep functional transitions visible but instantaneous */
+  .typing-dot,
+  .float-a,
+  .float-b,
+  .float-c,
+  .morph-blob,
+  .orbit-ring,
+  .orbit-dot,
+  .shimmer,
+  .card-3d:hover,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-spin {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Accessibility: High contrast ──────────────────────────── */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #666666;
+  }
+  .text-text-muted { color: #555555 !important; }
+  .border-border { border-color: #666666 !important; }
+}
+
+/* ── Mobile: Touch targets (min 44x44px per WCAG 2.5.5) ────── */
+@media (max-width: 1024px) {
+  button, [role="button"], a[href] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exception for inline icon buttons already sized properly */
+  .icon-btn-sm { min-height: auto; min-width: auto; }
+}
+
+/* ── Mobile: Responsive main layout ───────────────────────── */
+@media (max-width: 640px) {
+  /* Chat messages */
+  .prose-claude { font-size: 0.875rem; }
+  .prose-claude pre { font-size: 0.75rem; overflow-x: auto; }
+  .prose-claude table { display: block; overflow-x: auto; }
+
+  /* Query bar compact on mobile */
+  #query-input { font-size: 16px; } /* Prevent iOS auto-zoom */
+
+  /* Sidebar overlay — full-screen on small mobile */
+  #main-sidebar { width: 100%; }
+}
+
+/* ── Mobile: Tablet layout ─────────────────────────────────── */
+@media (min-width: 641px) and (max-width: 1023px) {
+  #main-sidebar { width: 280px; }
+}
+
+/* ── Screen reader only utility ────────────────────────────── */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ── Color contrast: ensure WCAG AA on all status badges ───── */
+.text-text-muted { color: #6B7280; } /* 4.6:1 on white — passes AA */
+
+/* ── Print styles ───────────────────────────────────────────── */
+@media print {
+  .skip-link, #main-sidebar, header, footer { display: none; }
+  .prose-claude { font-size: 12pt; }
 }

@@ -1,23 +1,45 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Any, Optional
+from enum import Enum
+
+
+class ReasoningMode(str, Enum):
+    standard = "standard"
+    cot = "cot"
+    tot = "tot"
+
+
+class ResponseMode(str, Enum):
+    compact = "compact"
+    detailed = "detailed"
+
 
 class QueryRequest(BaseModel):
-    query: str
-    doc_id: str
-    top_k: int = 3
-    include_trace: bool = False
-    response_mode: str = "compact"  # "compact" | "detailed"
-    reasoning_mode: Optional[str] = "standard"  # "standard" | "cot" | "tot"
+    query: str = Field(..., min_length=1, max_length=2000, description="User query (max 2000 chars)")
+    doc_id: str = Field(..., min_length=4, max_length=16, description="8-char hex document ID")
+    top_k: int = Field(3, ge=1, le=20, description="Number of chunks to retrieve (1-20)")
+    include_trace: bool = Field(False, description="Include full iteration trace in response")
+    response_mode: ResponseMode = Field(ResponseMode.compact, description="compact | detailed")
+    reasoning_mode: ReasoningMode = Field(ReasoningMode.standard, description="standard | cot | tot")
+
+    @validator("query")
+    def query_must_not_be_blank(cls, v):
+        if not v.strip():
+            raise ValueError("Query cannot be blank or whitespace only.")
+        return v.strip()
+
 
 class RetrievedChunk(BaseModel):
     chunk: str
     score: float
     index: int
 
+
 class FanoutResult(BaseModel):
     sub_query: str
     rewritten_query: str
     retrieved: List[Dict[str, Any]]
+
 
 class SufficientContextResult(BaseModel):
     is_context_sufficient: bool
@@ -25,6 +47,7 @@ class SufficientContextResult(BaseModel):
     feedback_log: str
     reasoning_summary: Optional[str] = None
     evidence_type: Optional[str] = None
+
 
 class TraceItem(BaseModel):
     iteration: int
@@ -34,10 +57,12 @@ class TraceItem(BaseModel):
     intermediate_draft: str
     sufficient_context_result: Dict[str, Any]
 
+
 class CitationInfo(BaseModel):
     chunk_index: int
     text_preview: str
     score: float
+
 
 class AskResponse(BaseModel):
     query: str
@@ -49,18 +74,24 @@ class AskResponse(BaseModel):
     trace: Optional[List[Dict[str, Any]]] = None
     final_context: Optional[str] = None
     session_id: Optional[str] = None
+    evidence_type: Optional[str] = None
+    fallback_used: Optional[bool] = False
+
 
 class VanillaAskResponse(BaseModel):
     query: str
     answer: str
     retrieved_chunks: List[Dict[str, Any]]
     context: str
+    citations: Optional[List[CitationInfo]] = None
+
 
 class UploadDocResponse(BaseModel):
     message: str
     doc_id: str
     file_name: str
     num_chunks: int
+
 
 class DocumentInfoResponse(BaseModel):
     doc_id: str
@@ -70,36 +101,62 @@ class DocumentInfoResponse(BaseModel):
     chunk_size: int
     overlap: int
     embedding_model: str
+    ocr_used: Optional[bool] = False
 
-# New Debug / Helper Endpoint Schemas
+
 class PlanRequest(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, max_length=2000)
+
+    @validator("query")
+    def must_not_be_blank(cls, v):
+        if not v.strip():
+            raise ValueError("Query cannot be blank.")
+        return v.strip()
+
 
 class PlanResponse(BaseModel):
     query: str
     sub_queries: List[str]
 
+
 class RewriteRequest(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, max_length=2000)
+
+    @validator("query")
+    def must_not_be_blank(cls, v):
+        if not v.strip():
+            raise ValueError("Query cannot be blank.")
+        return v.strip()
+
 
 class RewriteResponse(BaseModel):
     query: str
     rewritten_query: str
 
+
 class RetrieveOnlyRequest(BaseModel):
-    doc_id: str
-    query: str
-    top_k: int = 5
+    doc_id: str = Field(..., min_length=4, max_length=16)
+    query: str = Field(..., min_length=1, max_length=2000)
+    top_k: int = Field(5, ge=1, le=20)
+
+    @validator("query")
+    def must_not_be_blank(cls, v):
+        if not v.strip():
+            raise ValueError("Query cannot be blank.")
+        return v.strip()
+
 
 class RetrieveOnlyChunk(BaseModel):
     chunk: str
     score: float
     index: int
 
+
 class RetrieveOnlyResponse(BaseModel):
     original_query: str
     rewritten_query: Optional[str] = None
     retrieved_chunks: List[RetrieveOnlyChunk]
+
 
 class AskDebugResponse(BaseModel):
     query: str
@@ -112,3 +169,4 @@ class AskDebugResponse(BaseModel):
     final_context: str
     fallback_used: bool
     session_id: Optional[str] = None
+    evidence_type: Optional[str] = None

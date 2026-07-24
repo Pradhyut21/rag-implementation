@@ -1,11 +1,31 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agentic RAG Demo</title>
+    <title>Agentic RAG Platform — Enterprise Self-Correcting AI</title>
+    <meta name="description" content="Enterprise Agentic RAG with Chain of Thought, Tree of Thought, self-correcting feedback loops, and zero-hallucination synthesis. Powered by Groq LPU + FAISS." />
+    <meta name="theme-color" content="#7C3AED" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Agentic RAG Platform" />
+    <meta property="og:description" content="Self-correcting AI pipeline with CoT, ToT, and full observability." />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon (inline SVG as data URI) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237C3AED'/><circle cx='16' cy='14' r='6' fill='none' stroke='white' stroke-width='2'/><path d='M10 22 Q16 26 22 22' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/><circle cx='13' cy='13' r='1.5' fill='white'/><circle cx='19' cy='13' r='1.5' fill='white'/></svg>" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237C3AED'/></svg>" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-dark text-gray-200 antialiased">
+  <body>
+    <!-- Skip to content for screen readers -->
+    <a href="#chat-content" class="skip-link">Skip to main content</a>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

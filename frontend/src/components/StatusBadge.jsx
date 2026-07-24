@@ -1,25 +1,36 @@
-import { clsx } from 'clsx';
-import { CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Clock, Loader2 } from 'lucide-react';
 
-export default function StatusBadge({ status, label }) {
-  const styles = {
-    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    error: 'bg-red-500/10 text-red-400 border-red-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    info: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  };
+const VARIANTS = {
+  success: {
+    classes: 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400',
+    Icon: CheckCircle2,
+  },
+  warning: {
+    classes: 'bg-amber-900/20 border-amber-500/30 text-amber-400',
+    Icon: AlertTriangle,
+  },
+  error: {
+    classes: 'bg-red-900/20 border-red-500/30 text-red-400',
+    Icon: XCircle,
+  },
+  pending: {
+    classes: 'bg-blue-900/20 border-blue-500/30 text-blue-400',
+    Icon: Loader2,
+  },
+  default: {
+    classes: 'bg-panel/60 border-border text-gray-400',
+    Icon: Clock,
+  },
+};
 
-  const icons = {
-    success: <CheckCircle2 size={14} />,
-    error: <XCircle size={14} />,
-    warning: <AlertCircle size={14} />,
-    info: <Loader2 size={14} className="animate-spin" />,
-  };
+export default function StatusBadge({ status = 'default', label }) {
+  const variant = VARIANTS[status] || VARIANTS.default;
+  const Icon = variant.Icon;
 
   return (
-    <div className={clsx('flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium', styles[status])}>
-      {icons[status]}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold ${variant.classes}`}>
+      <Icon size={11} className={status === 'pending' ? 'animate-spin' : ''} />
       {label}
-    </div>
+    </span>
   );
 }

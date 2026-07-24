@@ -1,0 +1,94 @@
+repos:
+  # ── Ruff: replaces black, isort, flake8 in one hook ────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        name: "Ruff Linter"
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: "Ruff Formatter"
+        types_or: [python, pyi]
+
+  # ── Pre-commit built-in checks ───────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        name: "Trim trailing whitespace"
+      - id: end-of-file-fixer
+        name: "Ensure files end with newline"
+      - id: check-yaml
+        name: "Check YAML syntax"
+        args: [--allow-multiple-documents]
+      - id: check-json
+        name: "Check JSON syntax"
+      - id: check-toml
+        name: "Check TOML syntax"
+      - id: check-added-large-files
+        name: "Block large files (>500KB)"
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+        name: "Detect merge conflict markers"
+      - id: check-case-conflict
+        name: "Check case-sensitive file conflicts"
+      - id: detect-private-key
+        name: "Block accidental private key commits"
+      - id: debug-statements
+        name: "Block debug statements (pdb, breakpoint)"
+      - id: check-docstring-first
+        name: "Module docstrings before code"
+      - id: mixed-line-ending
+        name: "Consistent line endings"
+        args: [--fix=lf]
+
+  # ── Secrets detection ────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: "Detect hardcoded secrets"
+        args: [--baseline, .secrets.baseline]
+
+  # ── Bandit SAST (Python security) ───────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        name: "Bandit security scan"
+        args: [-c, agentic_rag_fastapi/pyproject.toml, -r, agentic_rag_fastapi/]
+        types: [python]
+        exclude: "tests/"
+
+  # ── Mypy (type checking) ─────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        name: "mypy type check"
+        additional_dependencies:
+          - pydantic>=2.0
+          - pydantic-settings>=2.0
+          - fastapi
+          - types-requests
+        args: [--ignore-missing-imports]
+        exclude: "tests/|evaluate_agentic_rag.py"
+
+  # ── Prettier (frontend formatting) ──────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: "Prettier (JS/JSX/CSS/JSON)"
+        types_or: [javascript, jsx, ts, tsx, json, css, yaml, markdown]
+        exclude: "dist/|node_modules/|coverage/"
+        args: [--write]
+
+  # ── Commit message format ────────────────────────────────────
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.27.0
+    hooks:
+      - id: commitizen
+        name: "Conventional Commits check"
+        stages: [commit-msg]

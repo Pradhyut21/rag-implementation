@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  # ── Backend (FastAPI) ──────────────────────────────────────
+  backend:
+    build:
+      context: ./agentic_rag_fastapi
+      dockerfile: Dockerfile
+    image: agentic-rag-backend:3.0
+    container_name: rag_backend
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - API_KEY=${API_KEY:-demo-rag-2026}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-20}
+    volumes:
+      - rag_uploads:/app/data/uploads
+      - rag_indexes:/app/data/indexes
+      - rag_debug_runs:/app/data/debug_runs
+      - rag_observability:/app/observability.db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - rag_network
+
+  # ── Frontend (Vite / Node) ─────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    image: agentic-rag-frontend:3.0
+    container_name: rag_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8002}
+      - VITE_API_KEY=${API_KEY:-demo-rag-2026}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rag_network
+
+volumes:
+  rag_uploads:
+  rag_indexes:
+  rag_debug_runs:
+  rag_observability:
+
+networks:
+  rag_network:
+    driver: bridge

@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
 python-docx
 pypdf
@@ -10,3 +10,11 @@ numpy
 groq
 python-dotenv
 tenacity
+slowapi
+python-jose[cryptography]
+passlib[bcrypt]
+pillow
+pytesseract
+unstructured[pdf]
+aiofiles
+sse-starlette
