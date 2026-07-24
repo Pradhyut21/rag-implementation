@@ -2,9 +2,9 @@
 
 > A self-correcting Retrieval-Augmented Generation pipeline that checks its own work before answering.
 
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org) [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com) [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com) [![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Pradhyut21/rag-implementation/blob/main/LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org) [![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Pradhyut21/rag-implementation/blob/main/LICENSE)
 
-Most RAG systems retrieve once and answer — even when the retrieved context is incomplete or irrelevant. This platform's agent pipeline plans the query, retrieves in parallel across sub-queries, **audits whether the retrieved context is actually sufficient to answer**, and loops back to re-retrieve if it isn't — before generating a final response. It supports two selectable reasoning strategies (Chain of Thought, Tree of Thought), streams every stage live via SSE, and logs the full decision trace to a 10-table observability schema so you can replay exactly how any answer was produced.
+Most RAG systems retrieve once and answer — even when the retrieved context is incomplete. This pipeline plans the query, retrieves in parallel, **audits whether the retrieved context is actually sufficient**, and loops back to re-retrieve if it isn't — before generating an answer. Two selectable reasoning modes (CoT, ToT), full SSE streaming, and a 10-table observability schema logging every decision.
 
 > 📖 Full technical spec: [FEATURES.md](FEATURES.md) · Judge Q&A and design defense: [HACKATHON_QA_LOG.md](HACKATHON_QA_LOG.md)
 
