@@ -1,6 +1,7 @@
 # 🧠 Agentic RAG Platform v3.0
 > Enterprise Self-Correcting RAG Pipeline with Chain of Thought, Tree of Thought, and Full Observability
 
+[![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org)
