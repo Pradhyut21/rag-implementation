@@ -1,14 +1,32 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 import logging
+import time
 from typing import Any
+import uuid
 
+from agents.cot_reasoner import run_cot_reasoning
 from agents.llm import safe_generate
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
 from agents.sufficient_context import sufficient_context_agent
 from agents.synthesis import synthesis_agent
+from agents.tree_of_thought import (
+    evaluate_branch,
+    generate_reasoning_tree,
+    merge_branches,
+    select_best_branch,
+)
+from observability.storage.db import (
+    save_branch_evaluation,
+    save_branch_score,
+    save_reasoning_branch,
+    save_reasoning_tree,
+    save_winning_branch,
+)
+from observability.tracing.context import get_trace_context
 from rag.retrieval import format_context, retrieve
 
 logger = logging.getLogger("agentic_rag.agentic_loop")
@@ -137,16 +155,11 @@ def agentic_rag(
 ) -> dict[str, Any]:
     logger.info(f"Agentic RAG | query={query!r} | mode={reasoning_mode}")
 
-    import uuid as _uuid
-    from observability.tracing.context import get_trace_context
-
     ctx = get_trace_context()
-    session_id = ctx.get("session_id") or str(_uuid.uuid4())
+    session_id = ctx.get("session_id") or str(uuid.uuid4())
 
     # ── Chain of Thought ──────────────────────────────────────
     if reasoning_mode == "cot":
-        from agents.cot_reasoner import run_cot_reasoning
-
         result = run_cot_reasoning(
             query=query,
             embedding_model=embedding_model,
@@ -173,22 +186,6 @@ def agentic_rag(
 
     # ── Tree of Thought ───────────────────────────────────────
     if reasoning_mode == "tot":
-        from agents.tree_of_thought import (
-            generate_reasoning_tree,
-            evaluate_branch,
-            select_best_branch,
-            merge_branches,
-        )
-        from observability.storage.db import (
-            save_reasoning_tree,
-            save_reasoning_branch,
-            save_branch_score,
-            save_winning_branch,
-            save_branch_evaluation,
-        )
-        import time
-        from datetime import datetime
-
         t0 = time.time()
         branches = generate_reasoning_tree(query)
 
@@ -209,7 +206,7 @@ def agentic_rag(
         merged_queries, _ = merge_branches(ranked_branches)
         tot_latency = time.time() - t0
 
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat()
         if session_id:
             save_reasoning_tree(session_id, query, timestamp, tot_latency)
             for b in ranked_branches:

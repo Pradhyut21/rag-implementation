@@ -1,23 +1,29 @@
-import time
-import uuid
+from __future__ import annotations
+
+from datetime import datetime, timezone
 import logging
-from datetime import datetime
-from typing import Dict, Any, List, Tuple
+import time
+from typing import Any, Callable
+import uuid
 
 from agents.llm import safe_generate
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
 from agents.sufficient_context import sufficient_context_agent
 from agents.synthesis import synthesis_agent
-from rag.retrieval import retrieve
 from observability.storage.db import save_reasoning_chain, save_reasoning_stage
+from rag.retrieval import retrieve
 
 logger = logging.getLogger("agentic_rag.cot_reasoner")
 
 
 def run_cot_reasoning(
-    query: str, embedding_model, vector_store, top_k: int = 3, session_id: str = None
-) -> Dict[str, Any]:
+    query: str,
+    embedding_model: Any,
+    vector_store: Any,
+    top_k: int = 3,
+    session_id: str | None = None,
+) -> dict[str, Any]:
     """
     Executes the Chain of Thought (CoT) reasoning workflow, running through
     6 structured reasoning stages, measuring latency, and persisting telemetry.
@@ -28,15 +34,15 @@ def run_cot_reasoning(
     logger.info(f"Running CoT reasoning workflow for session: {session_id}")
 
     # Save the root reasoning chain entry
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    timestamp = datetime.now(timezone.utc).isoformat()
     save_reasoning_chain(session_id, query, timestamp)
 
-    stages_log = []
+    stages_log: list[dict[str, Any]] = []
 
     # helper to run and record a stage
     def execute_stage(
-        index: int, name: str, input_str: str, action_fn
-    ) -> Tuple[Any, Dict[str, Any]]:
+        index: int, name: str, input_str: str, action_fn: Callable[[], tuple[Any, dict[str, Any]]]
+    ) -> tuple[Any, dict[str, Any]]:
         start_time = time.time()
         stage_id = str(uuid.uuid4())
         status = "SUCCESS"
