@@ -8,7 +8,7 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](file:///d:/Gemini%20ai%20agentic%20rag/FEATURES.md).
+> 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](FEATURES.md).
 
 Welcome to the comprehensive technical documentation for the **Enterprise Agentic Retrieval-Augmented Generation (Agentic RAG) Platform**. This document serves as an end-to-end handbook for systems architects, backend developers, frontend engineers, and operators to understand, run, debug, and expand the platform.
 
@@ -76,7 +76,7 @@ Query → [Planner] → [Query Rewriter] → [FAISS Fanout]
 
 ## ✨ Features
 
-> 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](file:///d:/Gemini%20ai%20agentic%20rag/FEATURES.md).
+> 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](FEATURES.md).
 
 ### AI Pipeline
 | Feature | Description |
@@ -184,7 +184,7 @@ python evaluate_agentic_rag.py
 | `GROQ_API_KEY` | Required | Groq API key |
 | `API_KEY` | `demo-rag-2026` | Backend API protection key |
 | `ALLOWED_ORIGINS` | `localhost:5173` | CORS allowed origins |
-| `DEMO_MODE` | `true` | Skip API key check in demo |
+| `DEMO_MODE` | `false` | Skip API key check in demo (set true for local dev) |
 | `MAX_FILE_SIZE_MB` | `20` | Max upload size |
 | `VITE_API_URL` | `http://localhost:8002` | Frontend → backend URL |
 | `VITE_API_KEY` | `demo-rag-2026` | Frontend API key |

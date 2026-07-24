@@ -1,6 +1,6 @@
 import os
 import logging
-import time
+from typing import Optional
 from groq import Groq, RateLimitError, APIStatusError
 from dotenv import load_dotenv
 from tenacity import (
@@ -15,12 +15,25 @@ load_dotenv()
 
 logger = logging.getLogger("agentic_rag.llm")
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# ---------------------------------------------------------------------------
+# Lazy singleton — key validated on first actual API call, NOT at import time.
+# This allows tests (conftest.py) to set GROQ_API_KEY before it is consumed.
+# ---------------------------------------------------------------------------
+_client: Optional[Groq] = None
 
-if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY not found in .env")
 
-client = Groq(api_key=GROQ_API_KEY)
+def _get_client() -> Groq:
+    """Return (or create) the Groq singleton client."""
+    global _client
+    if _client is None:
+        api_key = os.getenv("GROQ_API_KEY", "")
+        if not api_key:
+            raise ValueError(
+                "GROQ_API_KEY environment variable is not set. "
+                "Add it to your .env file or export it before starting the server."
+            )
+        _client = Groq(api_key=api_key)
+    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +62,7 @@ def safe_generate(prompt: str, temperature: float = 0) -> str:
     Raises:
         RateLimitError / APIStatusError: Re-raised after 5 failed attempts.
     """
-    response = client.chat.completions.create(
+    response = _get_client().chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {

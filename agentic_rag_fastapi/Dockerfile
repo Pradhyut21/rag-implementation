@@ -16,7 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+# Install CPU-only PyTorch first (avoids 2.5 GB CUDA download on CI runners)
+RUN pip install --upgrade pip && \
+    pip install torch torchvision torchaudio \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --no-cache-dir && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Download NLTK data during build
 RUN python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"

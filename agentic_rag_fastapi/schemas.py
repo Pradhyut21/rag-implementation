@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, validator
-from typing import List, Dict, Any, Optional
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, field_validator
+from typing import Any, Optional
 from enum import Enum
 
 
@@ -26,8 +28,9 @@ class QueryRequest(BaseModel):
         ReasoningMode.standard, description="standard | cot | tot"
     )
 
-    @validator("query")
-    def query_must_not_be_blank(cls, v):
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_blank(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Query cannot be blank or whitespace only.")
         return v.strip()
@@ -42,12 +45,12 @@ class RetrievedChunk(BaseModel):
 class FanoutResult(BaseModel):
     sub_query: str
     rewritten_query: str
-    retrieved: List[Dict[str, Any]]
+    retrieved: list[dict[str, Any]]
 
 
 class SufficientContextResult(BaseModel):
     is_context_sufficient: bool
-    missing_information: List[str]
+    missing_information: list[str]
     feedback_log: str
     reasoning_summary: Optional[str] = None
     evidence_type: Optional[str] = None
@@ -55,11 +58,11 @@ class SufficientContextResult(BaseModel):
 
 class TraceItem(BaseModel):
     iteration: int
-    sub_queries: List[str]
-    fanout_results: List[Dict[str, Any]]
+    sub_queries: list[str]
+    fanout_results: list[dict[str, Any]]
     aggregated_context: str
     intermediate_draft: str
-    sufficient_context_result: Dict[str, Any]
+    sufficient_context_result: dict[str, Any]
 
 
 class CitationInfo(BaseModel):
@@ -73,9 +76,9 @@ class AskResponse(BaseModel):
     answer: str
     iterations: int
     context_sufficient: bool
-    missing_information: List[str]
-    citations: List[CitationInfo]
-    trace: Optional[List[Dict[str, Any]]] = None
+    missing_information: list[str]
+    citations: list[CitationInfo]
+    trace: Optional[list[dict[str, Any]]] = None
     final_context: Optional[str] = None
     session_id: Optional[str] = None
     evidence_type: Optional[str] = None
@@ -85,9 +88,9 @@ class AskResponse(BaseModel):
 class VanillaAskResponse(BaseModel):
     query: str
     answer: str
-    retrieved_chunks: List[Dict[str, Any]]
+    retrieved_chunks: list[dict[str, Any]]
     context: str
-    citations: Optional[List[CitationInfo]] = None
+    citations: Optional[list[CitationInfo]] = None
 
 
 class UploadDocResponse(BaseModel):
@@ -111,8 +114,9 @@ class DocumentInfoResponse(BaseModel):
 class PlanRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
 
-    @validator("query")
-    def must_not_be_blank(cls, v):
+    @field_validator("query")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Query cannot be blank.")
         return v.strip()
@@ -126,8 +130,9 @@ class PlanResponse(BaseModel):
 class RewriteRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
 
-    @validator("query")
-    def must_not_be_blank(cls, v):
+    @field_validator("query")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Query cannot be blank.")
         return v.strip()
@@ -143,8 +148,9 @@ class RetrieveOnlyRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(5, ge=1, le=20)
 
-    @validator("query")
-    def must_not_be_blank(cls, v):
+    @field_validator("query")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Query cannot be blank.")
         return v.strip()
@@ -167,9 +173,9 @@ class AskDebugResponse(BaseModel):
     answer: str
     iterations: int
     context_sufficient: bool
-    missing_information: List[str]
-    citations: List[CitationInfo]
-    trace: List[Dict[str, Any]]
+    missing_information: list[str]
+    citations: list[CitationInfo]
+    trace: list[dict[str, Any]]
     final_context: str
     fallback_used: bool
     session_id: Optional[str] = None

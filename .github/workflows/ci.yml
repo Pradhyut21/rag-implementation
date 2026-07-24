@@ -114,6 +114,10 @@ jobs:
       GROQ_API_KEY: "test-groq-key-not-real"
       API_KEY: "test-api-key-2026"
       DEMO_MODE: "true"
+      # Cache sentence-transformers model downloads
+      SENTENCE_TRANSFORMERS_HOME: "/tmp/st_cache"
+      HF_HUB_OFFLINE: "0"
+      TRANSFORMERS_OFFLINE: "0"
 
     steps:
       - uses: actions/checkout@v4
@@ -123,20 +127,39 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      - name: Cache sentence-transformers model
+        uses: actions/cache@v4
+        with:
+          path: /tmp/st_cache
+          key: st-model-all-MiniLM-L6-v2-${{ matrix.python-version }}
+          restore-keys: |
+            st-model-all-MiniLM-L6-v2-
+
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq || true
-          sudo apt-get install -y --no-install-recommends tesseract-ocr poppler-utils libglib2.0-0 || true
+          sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr poppler-utils libglib2.0-0 || true
 
-      - name: Install Python dependencies
+      - name: Install Python dependencies (CPU-only, no CUDA)
         run: |
           pip install --upgrade pip
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install torch torchvision torchaudio \
+            --index-url https://download.pytorch.org/whl/cpu \
+            --timeout 300
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-asyncio httpx pydantic-settings
 
       - name: Download NLTK data
         run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')" || true
+
+      - name: Pre-download sentence-transformers model
+        run: |
+          python -c "
+          from sentence_transformers import SentenceTransformer
+          SentenceTransformer('all-MiniLM-L6-v2', cache_folder='/tmp/st_cache')
+          print('Model cached successfully')
+          " || true
 
       - name: Run tests
         run: |
@@ -146,7 +169,8 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
             --cov-omit="tests/*,venv/*,data/*" \
-            -v
+            -v \
+            --timeout=120
 
       - name: Upload coverage
         if: always()
@@ -168,11 +192,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: frontend-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            frontend-node-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefer-offline
 
       - name: Lint
         run: npm run lint --if-present || true
@@ -184,6 +214,7 @@ jobs:
           VITE_API_KEY: "demo-rag-2026"
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -200,13 +231,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
+      - name: Build backend image (no push, validation only)
         uses: docker/build-push-action@v5
         with:
           context: ./agentic_rag_fastapi
           file: ./agentic_rag_fastapi/Dockerfile
           push: false
           tags: agentic-rag-backend:ci-${{ github.sha }}
+          # Cache layers between runs
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   ci-success:
     name: CI Gate
@@ -215,4 +249,4 @@ jobs:
     if: always()
     steps:
       - name: All checks complete
-        run: echo "All CI checks complete"
+        run: echo "All CI checks complete - see individual job results above"
