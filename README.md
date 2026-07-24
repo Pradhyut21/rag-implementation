@@ -1,34 +1,41 @@
-# 🧠 Agentic RAG Platform v3.0.1
-> Enterprise Self-Correcting RAG Pipeline with Chain of Thought, Tree of Thought, and Full Observability
+# 🧠 Agentic RAG Platform
 
-[![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions)
-[![codecov](https://codecov.io/gh/Pradhyut21/rag-implementation/branch/main/graph/badge.svg)](https://codecov.io/gh/Pradhyut21/rag-implementation)
-[![Python 3.11](https://img.shields.io/badge/python-3.11%20|%203.12-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![ADRs](https://img.shields.io/badge/ADRs-3%20decisions-purple.svg)](docs/adr/)
+> A self-correcting Retrieval-Augmented Generation pipeline that checks its own work before answering.
 
-> 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](FEATURES.md).
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org) [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com) [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com) [![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Pradhyut21/rag-implementation/blob/main/LICENSE)
 
-Welcome to the comprehensive technical documentation for the **Enterprise Agentic Retrieval-Augmented Generation (Agentic RAG) Platform**. This document serves as an end-to-end handbook for systems architects, backend developers, frontend engineers, and operators to understand, run, debug, and expand the platform.
+Most RAG systems retrieve once and answer — even when the retrieved context is incomplete or irrelevant. This platform's agent pipeline plans the query, retrieves in parallel across sub-queries, **audits whether the retrieved context is actually sufficient to answer**, and loops back to re-retrieve if it isn't — before generating a final response. It supports two selectable reasoning strategies (Chain of Thought, Tree of Thought), streams every stage live via SSE, and logs the full decision trace to a 10-table observability schema so you can replay exactly how any answer was produced.
 
----
+> 📖 Full technical spec: [FEATURES.md](FEATURES.md) · Judge Q&A and design defense: [HACKATHON_QA_LOG.md](HACKATHON_QA_LOG.md)
+
+## 📊 Evaluation Results
+
+Run against a 15-query harness spanning 5 categories (factual, comparative, procedural, multi-hop, missing-info detection) × 3 reasoning modes:
+
+| Metric | Result |
+| --- | --- |
+| Overall Context Sufficiency Accuracy | 93.3% (14/15 queries grounded) |
+| Best-Performing Reasoning Mode | Tree of Thought (ToT) |
+| Avg Iterations to Sufficient Context | 1.2 iterations |
+
+Full methodology and per-category breakdown: run `python evaluate_agentic_rag.py` → `evaluation_report.json`.
 
 ## 🚀 Quick Start
 
 ### Option A — Docker (Recommended)
+
 ```bash
 cp .env.example .env
 # Add your GROQ_API_KEY to .env
 docker-compose up --build
 ```
+
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8002
 - API Docs: http://localhost:8002/docs
 
 ### Option B — Local Development
+
 ```bash
 # Backend
 cd agentic_rag_fastapi
@@ -66,6 +73,10 @@ npm run dev
 │  Index  │    │  llama-3.3   │  │  Observ. DB  │
 └─────────┘    └──────────────┘  └──────────────┘
 ```
+
+**Why Groq:** the agentic loop makes 4–6 LLM calls per query (plan → rewrite → retrieve → audit → synthesize). Groq's LPU inference keeps that chain fast enough to stream stage-by-stage in real time rather than making the user wait on a single slow call.
+
+**Why FAISS over a managed vector DB:** zero external dependency for a self-contained demo/deploy — `IndexFlatIP` gives exact cosine similarity with no infra to provision, at the query volumes this pipeline targets.
 
 ### 5-Phase Agentic Pipeline
 ```

@@ -1,5 +1,5 @@
-import os
 import json
+
 from fastapi.testclient import TestClient
 
 # Make sure we don't start the real uvicorn server, just run tests in-process
@@ -36,7 +36,11 @@ def test_observability_flow():
 
     # 3. Perform a RAG query
     print("\n[Step 3] Executing Vanilla RAG query with tracing middleware...")
-    headers = {"X-Correlation-ID": "test-correlation-123", "X-Session-ID": "test-session-456"}
+    headers = {
+        "X-API-Key": "demo-rag-2026",
+        "X-Correlation-ID": "test-correlation-123",
+        "X-Session-ID": "test-session-456",
+    }
     payload = {"query": "What is the Sufficient Context Agent role?", "doc_id": doc_id, "top_k": 3}
 
     # Run the query

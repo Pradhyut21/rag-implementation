@@ -1,18 +1,18 @@
 import json
-from fastapi import APIRouter, HTTPException, Query
-from typing import List, Dict, Any, Optional
 
-from observability.storage.db import get_db_connection
-from observability.services.metrics_service import get_performance_metrics
+from fastapi import APIRouter, HTTPException, Query
+
 from observability.services.analytics_service import get_analytics
+from observability.services.metrics_service import get_performance_metrics
 from observability.services.replay_service import get_session_replay_data
+from observability.storage.db import get_db_connection
 
 router = APIRouter(prefix="/observability", tags=["Observability"])
 
 
 @router.get("/sessions")
 def get_sessions(
-    limit: int = Query(50, ge=1), offset: int = Query(0, ge=0), status: Optional[str] = None
+    limit: int = Query(50, ge=1), offset: int = Query(0, ge=0), status: str | None = None
 ):
     conn = get_db_connection()
     cursor = conn.cursor()

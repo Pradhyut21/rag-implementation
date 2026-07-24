@@ -1,9 +1,10 @@
 import json
-from typing import Dict, Any, List
+from typing import Any
+
 from observability.storage.db import get_db_connection
 
 
-def get_session_replay_data(session_id: str) -> Dict[str, Any]:
+def get_session_replay_data(session_id: str) -> dict[str, Any]:
     """
     Retrieves all records associated with a session ID to drive step-by-step replays.
     """

@@ -1,7 +1,8 @@
-import time
 import os
-import requests
+import time
+
 from docx import Document
+import requests
 
 
 # 1. Create a dummy test document

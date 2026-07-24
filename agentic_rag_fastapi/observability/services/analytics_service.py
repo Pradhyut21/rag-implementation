@@ -1,8 +1,9 @@
-from typing import Dict, Any, List
+from typing import Any
+
 from observability.storage.db import get_db_connection
 
 
-def get_analytics() -> Dict[str, Any]:
+def get_analytics() -> dict[str, Any]:
     """
     Computes advanced analytics for the observability dashboard.
     """

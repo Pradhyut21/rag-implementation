@@ -17,4 +17,4 @@ CONTEXT:
 
 Now write a clear, grounded answer.
 """
-    return safe_generate(prompt)
+    return safe_generate(prompt, max_tokens=600)

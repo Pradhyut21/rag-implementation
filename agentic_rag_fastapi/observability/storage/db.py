@@ -1,8 +1,8 @@
-import os
-import sqlite3
 import json
 import logging
-from typing import List, Dict, Any, Optional
+import os
+import sqlite3
+from typing import Any
 
 logger = logging.getLogger("observability.db")
 
@@ -176,7 +176,7 @@ def init_db():
     logger.info("Observability database initialized successfully.")
 
 
-def save_session(session_data: Dict[str, Any]):
+def save_session(session_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -216,7 +216,7 @@ def save_session(session_data: Dict[str, Any]):
         conn.close()
 
 
-def save_span(span_data: Dict[str, Any]):
+def save_span(span_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -252,7 +252,7 @@ def save_span(span_data: Dict[str, Any]):
         conn.close()
 
 
-def save_event(event_data: Dict[str, Any]):
+def save_event(event_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -278,7 +278,7 @@ def save_event(event_data: Dict[str, Any]):
         conn.close()
 
 
-def save_error(error_data: Dict[str, Any]):
+def save_error(error_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -325,7 +325,7 @@ def save_reasoning_chain(session_id: str, query: str, timestamp: str):
         conn.close()
 
 
-def save_reasoning_stage(stage_data: Dict[str, Any]):
+def save_reasoning_stage(stage_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -373,7 +373,7 @@ def save_reasoning_tree(session_id: str, query: str, timestamp: str, decision_la
         conn.close()
 
 
-def save_reasoning_branch(branch_data: Dict[str, Any]):
+def save_reasoning_branch(branch_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -401,7 +401,7 @@ def save_reasoning_branch(branch_data: Dict[str, Any]):
         conn.close()
 
 
-def save_branch_score(score_data: Dict[str, Any]):
+def save_branch_score(score_data: dict[str, Any]):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -465,7 +465,7 @@ def save_branch_evaluation(branch_id: str, evaluation_details: str, score: float
         conn.close()
 
 
-def get_reasoning_chain_details(session_id: str) -> Dict[str, Any]:
+def get_reasoning_chain_details(session_id: str) -> dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -497,7 +497,7 @@ def get_reasoning_chain_details(session_id: str) -> Dict[str, Any]:
         conn.close()
 
 
-def get_reasoning_tree_details(session_id: str) -> Dict[str, Any]:
+def get_reasoning_tree_details(session_id: str) -> dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     try:

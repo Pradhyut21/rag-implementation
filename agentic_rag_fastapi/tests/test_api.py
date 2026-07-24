@@ -8,7 +8,7 @@ mocked. Tests run offline and should complete in under 10 seconds.
 from __future__ import annotations
 
 import io
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

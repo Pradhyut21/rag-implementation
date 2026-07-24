@@ -133,7 +133,7 @@ class TestSufficientContextAgent:
     @pytest.mark.unit
     def test_returns_sufficient_result(self):
         """SC agent correctly parses a 'sufficient' LLM response."""
-        with patch("agents.llm.safe_generate", return_value=self.VALID_SC_JSON):
+        with patch("agents.sufficient_context.fast_generate", return_value=self.VALID_SC_JSON):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("query", "context", "draft")
@@ -144,7 +144,7 @@ class TestSufficientContextAgent:
     @pytest.mark.unit
     def test_returns_insufficient_result(self):
         """SC agent correctly parses a 'partial/insufficient' LLM response."""
-        with patch("agents.llm.safe_generate", return_value=self.PARTIAL_SC_JSON):
+        with patch("agents.sufficient_context.fast_generate", return_value=self.PARTIAL_SC_JSON):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("query", "context", "draft")
@@ -155,7 +155,7 @@ class TestSufficientContextAgent:
     @pytest.mark.unit
     def test_fallback_on_invalid_json(self):
         """SC agent must not crash and must return conservative fallback."""
-        with patch("agents.llm.safe_generate", return_value="This is not JSON"):
+        with patch("agents.sufficient_context.fast_generate", return_value="This is not JSON"):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("query", "context", "draft")
@@ -173,7 +173,7 @@ class TestSufficientContextAgent:
             "reasoning_summary": "ok",
             "evidence_type": "unknown_value"
         }"""
-        with patch("agents.llm.safe_generate", return_value=bad_json):
+        with patch("agents.sufficient_context.fast_generate", return_value=bad_json):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("q", "c", "d")
@@ -189,7 +189,7 @@ class TestSufficientContextAgent:
             "reasoning_summary": "ok",
             "evidence_type": "partial"
         }"""
-        with patch("agents.llm.safe_generate", return_value=bad_json):
+        with patch("agents.sufficient_context.fast_generate", return_value=bad_json):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("q", "c", "d")
@@ -199,7 +199,7 @@ class TestSufficientContextAgent:
     def test_list_wrapped_in_outer_list_is_handled(self):
         """LLM sometimes wraps the object in a list — must extract first element."""
         wrapped = '[{"is_context_sufficient": true, "missing_information": [], "feedback_log": "", "reasoning_summary": "ok", "evidence_type": "explicit"}]'
-        with patch("agents.llm.safe_generate", return_value=wrapped):
+        with patch("agents.sufficient_context.fast_generate", return_value=wrapped):
             from agents.sufficient_context import sufficient_context_agent
 
             result = sufficient_context_agent("q", "c", "d")
@@ -260,12 +260,9 @@ class TestAgenticLoopHelpers:
     @pytest.mark.unit
     def test_search_fanout_returns_correct_structure(self):
         """search_fanout must return one entry per sub-query with required keys."""
-        with (
-            patch("agents.agentic_loop.query_rewriter", side_effect=lambda q: f"rw:{q}"),
-            patch(
-                "agents.agentic_loop.retrieve",
-                return_value=[{"chunk": "result", "score": 0.9, "index": 0}],
-            ),
+        with patch(
+            "agents.agentic_loop.retrieve",
+            return_value=[{"chunk": "result", "score": 0.9, "index": 0}],
         ):
             from agents.agentic_loop import search_fanout
 

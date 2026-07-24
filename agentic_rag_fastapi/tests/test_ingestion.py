@@ -8,9 +8,6 @@ All file I/O uses real in-memory files via the ``sample_docx_bytes`` fixture.
 
 from __future__ import annotations
 
-import io
-import textwrap
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -154,7 +151,7 @@ class TestLoadDocument:
     @pytest.mark.unit
     def test_dispatches_to_pdf_loader(self, tmp_path):
         """load_document dispatches .pdf files to load_pdf."""
-        from rag.ingestion import load_document, load_pdf
+        from rag.ingestion import load_document
 
         with patch("rag.ingestion.load_pdf", return_value="PDF text content " * 20) as mock_pdf:
             pdf_path = tmp_path / "doc.pdf"

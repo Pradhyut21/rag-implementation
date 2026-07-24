@@ -1,29 +1,29 @@
-import uuid
 from contextvars import ContextVar
-from typing import Optional, Dict, Any
+from typing import Any
+import uuid
 
 # Context variables for trace tracking
-session_id_var: ContextVar[Optional[str]] = ContextVar("session_id", default=None)
-request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
-correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
-workflow_id_var: ContextVar[Optional[str]] = ContextVar("workflow_id", default=None)
+session_id_var: ContextVar[str | None] = ContextVar("session_id", default=None)
+request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
+correlation_id_var: ContextVar[str | None] = ContextVar("correlation_id", default=None)
+workflow_id_var: ContextVar[str | None] = ContextVar("workflow_id", default=None)
 active_iteration_var: ContextVar[int] = ContextVar("active_iteration", default=0)
-active_doc_id_var: ContextVar[Optional[str]] = ContextVar("active_doc_id", default=None)
+active_doc_id_var: ContextVar[str | None] = ContextVar("active_doc_id", default=None)
 
 # Accumulates tokens and cost for the current request
 # Structure: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "estimated_cost": 0.0}
-token_accumulator_var: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
+token_accumulator_var: ContextVar[dict[str, Any] | None] = ContextVar(
     "token_accumulator", default=None
 )
 
 
 def init_trace_context(
-    session_id: Optional[str] = None,
-    request_id: Optional[str] = None,
-    correlation_id: Optional[str] = None,
-    workflow_id: Optional[str] = None,
-    doc_id: Optional[str] = None,
-) -> Dict[str, str]:
+    session_id: str | None = None,
+    request_id: str | None = None,
+    correlation_id: str | None = None,
+    workflow_id: str | None = None,
+    doc_id: str | None = None,
+) -> dict[str, str]:
     """
     Initializes a new context trace with unique identifiers.
     Returns the initialized IDs.
@@ -53,7 +53,7 @@ def init_trace_context(
     }
 
 
-def get_trace_context() -> Dict[str, Any]:
+def get_trace_context() -> dict[str, Any]:
     """
     Retrieves the current trace identifiers and token accumulation values.
     """

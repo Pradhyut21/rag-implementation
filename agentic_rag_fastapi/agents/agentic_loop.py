@@ -8,7 +8,6 @@ from typing import Any
 import uuid
 
 from agents.cot_reasoner import run_cot_reasoning
-from agents.llm import safe_generate
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
 from agents.sufficient_context import sufficient_context_agent
@@ -36,28 +35,22 @@ MAX_ITERATIONS = 2
 
 
 def build_intermediate_draft(query: str, context: str) -> str:
-    prompt = f"""You are generating an intermediate draft answer.
-Use the context below to draft a possible answer to the user's question.
-
-USER QUERY:
-{query}
-
-CONTEXT:
-{context}
-
-Write a concise draft answer grounded only in the context."""
-    return safe_generate(prompt)
+    """Fast context preview for SC auditor — avoids redundant LLM roundtrip."""
+    if not context:
+        return ""
+    return context[:1000]
 
 
 def _process_single_subquery(
     sq: str, embedding_model: Any, vector_store: Any, top_k: int
 ) -> dict[str, Any]:
     """Worker function for parallel fanout — runs in thread pool."""
-    rewritten = query_rewriter(sq)
-    retrieved = retrieve(rewritten, embedding_model, vector_store, top_k=top_k)
+    # Skip rewriter LLM call: planner sub-queries are already retrieval-ready.
+    # The rewriter added 2–5 extra LLM roundtrips per request with negligible gain.
+    retrieved = retrieve(sq, embedding_model, vector_store, top_k=top_k)
     return {
         "sub_query": sq,
-        "rewritten_query": rewritten,
+        "rewritten_query": sq,
         "retrieved": retrieved,
     }
 

@@ -1,6 +1,7 @@
 import time
-import requests
+
 from docx import Document
+import requests
 
 # create a dummy document
 doc = Document()

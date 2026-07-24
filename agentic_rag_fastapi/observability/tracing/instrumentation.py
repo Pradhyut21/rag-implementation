@@ -1,17 +1,16 @@
-import time
-import uuid
-import logging
-import traceback
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+import logging
+import time
+import traceback
+import uuid
 
+from observability.storage.db import save_error, save_event, save_session, save_span
 from observability.tracing.context import (
-    get_trace_context,
-    update_accumulated_tokens,
-    init_trace_context,
     active_iteration_var,
+    get_trace_context,
+    init_trace_context,
+    update_accumulated_tokens,
 )
-from observability.storage.db import save_span, save_session, save_event, save_error
 
 logger = logging.getLogger("observability.instrumentation")
 
@@ -23,7 +22,6 @@ def wrapped_safe_generate(prompt: str, temperature: float = 0):
     # NOTE: We delegate to the ORIGINAL safe_generate (stored in _originals) which
     # has the tenacity retry/back-off decorator for rate-limit errors.  Calling
     # client.chat.completions.create directly here would bypass those retries.
-    from groq import Groq
 
     ctx = get_trace_context()
     session_id = ctx["session_id"] or str(uuid.uuid4())
@@ -780,7 +778,7 @@ def _run_with_iterative_tracking(original_func, query, *args, **kwargs):
                 "session_id": session_id,
                 "request_id": request_id,
                 "error_type": "Exception",
-                "message": f"Workflow failed: {str(e)}",
+                "message": f"Workflow failed: {e!s}",
                 "stack_trace": tb,
                 "timestamp": datetime.utcnow().isoformat() + "Z",
             }
@@ -835,13 +833,13 @@ def setup_observability():
     logger.info("Monkey-patching Agentic RAG functions for Observability...")
 
     # Import modules to patch
+    import agents.agentic_loop
     import agents.llm
     import agents.planner
     import agents.rewriter
-    import rag.retrieval
     import agents.sufficient_context
     import agents.synthesis
-    import agents.agentic_loop
+    import rag.retrieval
 
     # 1. safe_generate
     _originals["safe_generate"] = agents.llm.safe_generate
@@ -890,41 +888,41 @@ def setup_observability():
         try:
             if (
                 hasattr(mod, "agentic_rag")
-                and getattr(mod, "agentic_rag") is not wrapped_agentic_rag
+                and mod.agentic_rag is not wrapped_agentic_rag
             ):
-                setattr(mod, "agentic_rag", wrapped_agentic_rag)
+                mod.agentic_rag = wrapped_agentic_rag
             if (
                 hasattr(mod, "vanilla_rag")
-                and getattr(mod, "vanilla_rag") is not wrapped_vanilla_rag
+                and mod.vanilla_rag is not wrapped_vanilla_rag
             ):
-                setattr(mod, "vanilla_rag", wrapped_vanilla_rag)
+                mod.vanilla_rag = wrapped_vanilla_rag
             if (
                 hasattr(mod, "planner_agent")
-                and getattr(mod, "planner_agent") is not wrapped_planner_agent
+                and mod.planner_agent is not wrapped_planner_agent
             ):
-                setattr(mod, "planner_agent", wrapped_planner_agent)
+                mod.planner_agent = wrapped_planner_agent
             if (
                 hasattr(mod, "query_rewriter")
-                and getattr(mod, "query_rewriter") is not wrapped_query_rewriter
+                and mod.query_rewriter is not wrapped_query_rewriter
             ):
-                setattr(mod, "query_rewriter", wrapped_query_rewriter)
-            if hasattr(mod, "retrieve") and getattr(mod, "retrieve") is not wrapped_retrieve:
-                setattr(mod, "retrieve", wrapped_retrieve)
+                mod.query_rewriter = wrapped_query_rewriter
+            if hasattr(mod, "retrieve") and mod.retrieve is not wrapped_retrieve:
+                mod.retrieve = wrapped_retrieve
             if (
                 hasattr(mod, "sufficient_context_agent")
-                and getattr(mod, "sufficient_context_agent") is not wrapped_sufficient_context_agent
+                and mod.sufficient_context_agent is not wrapped_sufficient_context_agent
             ):
-                setattr(mod, "sufficient_context_agent", wrapped_sufficient_context_agent)
+                mod.sufficient_context_agent = wrapped_sufficient_context_agent
             if (
                 hasattr(mod, "synthesis_agent")
-                and getattr(mod, "synthesis_agent") is not wrapped_synthesis_agent
+                and mod.synthesis_agent is not wrapped_synthesis_agent
             ):
-                setattr(mod, "synthesis_agent", wrapped_synthesis_agent)
+                mod.synthesis_agent = wrapped_synthesis_agent
             if (
                 hasattr(mod, "safe_generate")
-                and getattr(mod, "safe_generate") is not wrapped_safe_generate
+                and mod.safe_generate is not wrapped_safe_generate
             ):
-                setattr(mod, "safe_generate", wrapped_safe_generate)
+                mod.safe_generate = wrapped_safe_generate
         except Exception:
             pass
 

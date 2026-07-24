@@ -363,29 +363,31 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
     <aside
       id="main-sidebar"
       aria-label="Navigation and document management"
-      className="flex flex-col h-full bg-bg-secondary border-r border-border"
+      className="flex flex-col h-full w-full bg-white border-r border-border shadow-sm"
     >
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-border flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand to-accent-blue flex items-center justify-center shadow-brand flex-shrink-0" aria-hidden="true">
-          <Brain size={16} className="text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-text-primary text-sm leading-none">Agentic RAG</p>
-          <p className="text-[10px] text-text-muted leading-none mt-0.5">Enterprise Platform v3.0</p>
+      <div className="px-4 py-4 border-b border-border flex items-center justify-between gap-3 bg-white">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand to-accent-blue flex items-center justify-center shadow-brand flex-shrink-0" aria-hidden="true">
+            <Brain size={16} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-text-primary text-sm leading-none">Agentic RAG</p>
+            <p className="text-[10px] text-text-muted leading-none mt-0.5">Enterprise Platform v3.0</p>
+          </div>
         </div>
         {/* Mobile close */}
-        <button onClick={onClose} className="lg:hidden text-text-muted hover:text-text-primary" aria-label="Close sidebar">
+        <button onClick={onClose} className="lg:hidden p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors" aria-label="Close sidebar">
           <X size={18} />
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="px-3 py-3 border-b border-border space-y-0.5" aria-label="Main navigation">
+      <nav className="px-3 py-3 border-b border-border space-y-0.5 bg-white" aria-label="Main navigation">
         {navItems.map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => { setActiveTab(id); onClose?.(); }}
             aria-current={activeTab === id ? 'page' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${activeTab === id ? 'bg-brand-100 text-brand border border-brand/20' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}>
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${activeTab === id ? 'bg-brand-100 text-brand border border-brand/20 shadow-sm' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}>
             <Icon size={15} aria-hidden="true" />
             {label}
           </button>
@@ -393,7 +395,7 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
       </nav>
 
       {/* Upload */}
-      <div className="px-3 py-3 border-b border-border">
+      <div className="px-3 py-3 border-b border-border bg-white">
         <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 px-1" id="kb-label">Knowledge Base</p>
         <div
           role="button"
@@ -415,7 +417,7 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
         <button
           onClick={() => setOcrMode(o => !o)}
           aria-pressed={ocrMode}
-          className={`mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${ocrMode ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-bg-secondary border-border text-text-muted hover:text-text-primary'}`}
+          className={`mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none ${ocrMode ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-surface border-border text-text-muted hover:text-text-primary hover:bg-surface-hover'}`}
         >
           <Scan size={12} aria-hidden="true" />
           OCR Mode {ocrMode ? '(On — scanned PDFs)' : '(Off)'}
@@ -423,7 +425,7 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
       </div>
 
       {/* Doc list */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1" role="list" aria-label="Indexed documents">
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 bg-white" role="list" aria-label="Indexed documents">
         {documents.length === 0 ? (
           <div className="text-center py-8 text-xs text-text-muted" aria-live="polite">
             <FileText size={24} className="mx-auto mb-2 text-border-strong" aria-hidden="true" />
@@ -433,7 +435,7 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
           const isActive = selectedDocId === doc.doc_id;
           return (
             <div key={doc.doc_id} role="listitem"
-              className={`group relative flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${isActive ? 'bg-brand-100 border border-brand/20' : 'hover:bg-surface-hover border border-transparent'}`}
+              className={`group relative flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${isActive ? 'bg-brand-100 border border-brand/20 shadow-sm' : 'hover:bg-surface-hover border border-transparent'}`}
               onClick={() => onSelect(doc.doc_id)}
               tabIndex={0}
               onKeyDown={e => e.key === 'Enter' && onSelect(doc.doc_id)}
@@ -458,7 +460,7 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border">
+      <div className="px-4 py-3 border-t border-border bg-white">
         <div className="flex items-center gap-2 text-[10px] text-text-muted">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
           <span>Backend: port 8002</span>
@@ -474,9 +476,9 @@ function Sidebar({ documents, selectedDocId, onSelect, onDelete, onUpload, activ
       <div className="hidden lg:flex w-64 flex-shrink-0 h-full flex-col">{sidebarContent}</div>
       {/* Mobile drawer */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex">
-          <div className="w-64 flex-shrink-0 h-full flex flex-col">{sidebarContent}</div>
-          <div className="flex-1 bg-black/40" onClick={onClose} aria-label="Close sidebar overlay" />
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="w-64 max-w-[85vw] flex-shrink-0 h-full flex flex-col shadow-2xl relative z-10">{sidebarContent}</div>
+          <div className="flex-1 bg-black/50 backdrop-blur-xs" onClick={onClose} aria-label="Close sidebar overlay" />
         </div>
       )}
     </>

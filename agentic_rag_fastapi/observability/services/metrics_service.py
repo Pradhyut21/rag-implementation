@@ -1,8 +1,9 @@
-from typing import Dict, Any
+from typing import Any
+
 from observability.storage.db import get_db_connection
 
 
-def get_performance_metrics() -> Dict[str, Any]:
+def get_performance_metrics() -> dict[str, Any]:
     """
     Computes performance metrics by querying the SQLite database.
     """

@@ -1,8 +1,9 @@
 import json
-import time
 import os
-import requests
+import time
+
 from docx import Document
+import requests
 
 # ─────────────────────────────────────────────────────────────
 # 15-Query Evaluation Harness

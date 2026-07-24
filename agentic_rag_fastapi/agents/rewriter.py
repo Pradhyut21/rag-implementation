@@ -25,13 +25,17 @@ def query_rewriter(sub_query: str) -> str:
         The rewritten search query string. Falls back to original
         if the LLM yields an empty or invalid response.
     """
+    sub_query_clean = sub_query.strip()
+    if not sub_query_clean:
+        return ""
+
     prompt = f"""You are a Query Rewriter for retrieval.
 
 Rewrite the following question into a concise search query optimized for semantic retrieval from a technical document.
 Return only the rewritten query and nothing else.
 
 Question:
-{sub_query}
+{sub_query_clean}
 """
     response = llm.safe_generate(prompt).strip()
 
@@ -39,6 +43,6 @@ Question:
         logger.warning(
             "Rewriter returned empty response for sub_query=%r — using original.", sub_query
         )
-        return sub_query
+        return sub_query_clean
 
     return response

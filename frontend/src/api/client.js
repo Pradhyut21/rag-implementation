@@ -1,12 +1,30 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8002';
-const API_KEY = import.meta.env.VITE_API_KEY || 'demo-rag-2026';
+
+/** Read JWT token from Zustand-persisted localStorage (avoids circular import). */
+function getAuthToken() {
+  try {
+    const raw = localStorage.getItem('rag-auth-storage');
+    if (!raw) return null;
+    return JSON.parse(raw)?.state?.token || null;
+  } catch {
+    return null;
+  }
+}
 
 const client = axios.create({
   baseURL: API_URL,
-  headers: { 'X-API-Key': API_KEY },
   timeout: 120000, // 2 min timeout for long queries
+});
+
+// Request interceptor — inject JWT Bearer token on every request
+client.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
 });
 
 // Response interceptor — normalize error messages
@@ -18,15 +36,24 @@ client.interceptors.response.use(
 
     const userMessages = {
       400: detail || 'Invalid request. Check your input.',
-      403: 'Access denied. Invalid or missing API key.',
+      401: detail || 'Session expired. Please log in again.',
+      403: 'Access denied.',
       404: 'Document not found. It may have been deleted.',
       413: 'File too large. Maximum upload size is 20MB.',
       422: 'Validation error. Check query length and document ID.',
       429: 'Too many requests. Please wait a moment and try again.',
-      500: 'Server error. The AI pipeline encountered a problem.',
+      500: detail || 'Server error. The AI pipeline encountered a problem.',
+      502: detail || 'LLM service error. Please check LLM provider key / quota.',
     };
 
-    err.userMessage = userMessages[status] || detail || 'An unexpected error occurred.';
+    err.userMessage = detail || userMessages[status] || 'An unexpected error occurred.';
+
+    // On 401 — clear stale token so the app returns to login screen
+    if (status === 401) {
+      localStorage.removeItem('rag-auth-storage');
+      window.location.reload();
+    }
+
     return Promise.reject(err);
   }
 );
@@ -38,7 +65,10 @@ export function streamAsk(payload, callbacks) {
 
   fetch(`${API_URL}/stream-ask`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {}),
+    },
     body: JSON.stringify(payload),
     signal: ctrl.signal,
   }).then(async (response) => {

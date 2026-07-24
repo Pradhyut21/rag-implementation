@@ -1,7 +1,8 @@
 import logging
+
 from docx import Document
-from pypdf import PdfReader
 from nltk.tokenize import sent_tokenize
+from pypdf import PdfReader
 
 logger = logging.getLogger("agentic_rag.ingestion")
 
@@ -55,9 +56,10 @@ def load_pdf_with_ocr(file_path: str) -> str:
 
     # Method 2: Tesseract via pdf2image + pytesseract
     try:
-        import pytesseract
-        from PIL import Image
         import io
+
+        from PIL import Image
+        import pytesseract
 
         try:
             from pdf2image import convert_from_path

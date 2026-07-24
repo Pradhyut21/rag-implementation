@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 import agents.llm as llm
+from agents.llm import fast_generate
 from utils.json_utils import extract_json_object
 
 logger = logging.getLogger("agentic_rag.sufficient_context")
@@ -76,11 +77,11 @@ def sufficient_context_agent(
     """
     prompt = _SC_PROMPT_TEMPLATE.format(
         query=query,
-        context=context[:8000],
-        draft=intermediate_draft[:2000],
+        context=context[:3000],
+        draft=intermediate_draft[:500],
     )
 
-    raw_response = llm.safe_generate(prompt)
+    raw_response = fast_generate(prompt, max_tokens=256)
 
     try:
         data = extract_json_object(raw_response)

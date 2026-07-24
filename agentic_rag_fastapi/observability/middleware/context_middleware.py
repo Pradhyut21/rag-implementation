@@ -1,8 +1,10 @@
 import json
-import uuid
 import logging
+import uuid
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+
 from observability.tracing.context import init_trace_context
 
 logger = logging.getLogger("observability.middleware")
@@ -26,19 +28,16 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         request_id = str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
 
-        # 2. Try to parse doc_id from JSON request body safely
+        # 2. Try to parse doc_id from JSON request body safely (skip streaming endpoints to preserve ASGI body stream)
         doc_id = None
         content_type = request.headers.get("content-type", "")
-        if request.method == "POST" and "application/json" in content_type:
+        if (
+            request.method == "POST"
+            and "application/json" in content_type
+            and not request.url.path.endswith("/stream-ask")
+        ):
             try:
                 body = await request.body()
-
-                # Clone/restore request body channel so FastAPI endpoints can parse it again
-                async def receive():
-                    return {"type": "http.request", "body": body}
-
-                request._receive = receive
-
                 if body:
                     data = json.loads(body)
                     doc_id = data.get("doc_id")

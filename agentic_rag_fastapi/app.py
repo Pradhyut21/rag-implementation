@@ -1,45 +1,40 @@
-import os
-import uuid
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import json
 import logging
+import os
 import threading
-import tempfile
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import lru_cache
+import uuid
 
-import nltk
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request, Security
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security.api_key import APIKeyHeader
-from fastapi.responses import StreamingResponse
+from fastapi.security import OAuth2PasswordRequestForm
+import nltk
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
-from rag.ingestion import load_document, chunk_text
-from rag.embeddings import EmbeddingModel
-from rag.vector_store import VectorStore
-from rag.retrieval import retrieve
 from agents.agentic_loop import agentic_rag, vanilla_rag
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
+from rag.embeddings import EmbeddingModel
+from rag.ingestion import chunk_text, load_document
+from rag.retrieval import retrieve
+from rag.vector_store import FaissVectorStore, VectorStore, create_vector_store
 from schemas import (
-    QueryRequest,
+    AskDebugResponse,
     AskResponse,
-    VanillaAskResponse,
-    UploadDocResponse,
     DocumentInfoResponse,
     PlanRequest,
     PlanResponse,
-    RewriteRequest,
-    RewriteResponse,
+    QueryRequest,
     RetrieveOnlyRequest,
     RetrieveOnlyResponse,
-    AskDebugResponse,
+    RewriteRequest,
+    RewriteResponse,
+    UploadDocResponse,
+    VanillaAskResponse,
 )
 
 # ── Logging ──────────────────────────────────────────────────
@@ -49,7 +44,7 @@ logging.basicConfig(
 logger = logging.getLogger("agentic_rag_api")
 
 # ── Observability setup ───────────────────────────────────────
-from observability import setup_observability, ObservabilityMiddleware
+from observability import ObservabilityMiddleware, setup_observability
 from observability.routes import router as observability_router
 
 setup_observability()
@@ -62,6 +57,9 @@ except Exception as e:
     logger.warning(f"NLTK download failed: {e}")
 
 # ── Rate Limiter ──────────────────────────────────────────────
+from fastapi.responses import JSONResponse
+from groq import AuthenticationError, GroqError
+
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/hour"])
 
 # ── FastAPI app ───────────────────────────────────────────────
@@ -75,6 +73,23 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.exception_handler(AuthenticationError)
+async def groq_auth_error_handler(request: Request, exc: AuthenticationError):
+    logger.error(f"Groq AuthenticationError: {exc}")
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Groq API key authentication failed. Please update GROQ_API_KEY in your .env file with a valid key from https://console.groq.com/keys."},
+    )
+
+@app.exception_handler(GroqError)
+async def groq_generic_error_handler(request: Request, exc: GroqError):
+    logger.error(f"Groq API error: {exc}")
+    return JSONResponse(
+        status_code=502,
+        content={"detail": f"Groq LLM service error: {str(exc)}"},
+    )
+
 app.add_middleware(ObservabilityMiddleware)
 
 # ── CORS (restrict in production) ────────────────────────────
@@ -92,25 +107,34 @@ app.add_middleware(
 
 app.include_router(observability_router)
 
-# ── API Key Auth ──────────────────────────────────────────────
-API_KEY = os.getenv("API_KEY", "")
+# ── JWT Auth (replaces shared API key) ────────────────────────
+from auth import authenticate_user, create_access_token, get_current_user
+
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-API_KEY_NAME = "X-API-Key"
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 if DEMO_MODE:
-    logger.warning("⚠️ DEMO_MODE is ENABLED — API key verification is bypassed for development.")
+    logger.warning("⚠️ DEMO_MODE is ENABLED — JWT auth verification is bypassed for development.")
 
 
-async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
-    """Validate API key. Returns the key if valid, raises 401 if missing/invalid."""
-    if DEMO_MODE:
-        return "demo"
-    if not api_key:
-        raise HTTPException(status_code=401, detail="API key required. Provide X-API-Key header.")
-    if API_KEY and api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key.")
-    return api_key
+@app.post("/auth/token", tags=["Auth"], summary="Obtain JWT access token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Authenticate with username + password and receive a JWT Bearer token.
+
+    Demo credentials: username=admin  password=demo-rag-2026
+
+    Use the returned token as: Authorization: Bearer <token>
+    """
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = create_access_token(data={"sub": user["username"]})
+    logger.info(f"JWT issued for user: {user['username']}")
+    return {"access_token": token, "token_type": "bearer"}
 
 
 # ── File / Query constants ────────────────────────────────────
@@ -127,7 +151,7 @@ for d in [UPLOAD_DIR, INDEX_DIR, DEBUG_RUNS_DIR]:
 
 # ── Global models (singletons with thread safety) ─────────────
 embedding_model = EmbeddingModel()
-loaded_vector_stores: Dict[str, VectorStore] = {}
+loaded_vector_stores: dict[str, FaissVectorStore] = {}
 _vs_lock = threading.Lock()  # Thread-safe vector store cache
 _registry_lock = threading.Lock()  # Thread-safe registry access
 
@@ -138,7 +162,7 @@ def load_registry() -> dict:
         if not os.path.exists(REGISTRY_PATH):
             return {}
         try:
-            with open(REGISTRY_PATH, "r", encoding="utf-8") as f:
+            with open(REGISTRY_PATH, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load registry: {e}")
@@ -181,14 +205,14 @@ def get_vector_store_for_doc(doc_id: str) -> VectorStore:
         raise HTTPException(status_code=404, detail=f"Index files missing for doc '{doc_id}'.")
 
     try:
-        vs = VectorStore()
+        vs = create_vector_store(os.getenv("VECTOR_BACKEND", "faiss"))
         vs.load(index_path, chunks_path)
         with _vs_lock:
             loaded_vector_stores[doc_id] = vs
         logger.info(f"Loaded and cached VectorStore for doc_id: {doc_id}")
         return vs
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load vector store: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load vector store: {e!s}")
 
 
 # ── Sanitize filename ─────────────────────────────────────────
@@ -235,7 +259,7 @@ def health():
 async def upload_doc(
     request: Request,
     file: UploadFile = File(...),
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     filename = file.filename or "upload"
     filename = safe_filename(filename)
@@ -266,7 +290,7 @@ async def upload_doc(
         with open(file_path, "wb") as f:
             f.write(content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e!s}")
 
     # Extract text
     try:
@@ -274,7 +298,7 @@ async def upload_doc(
     except Exception as e:
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to parse document: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse document: {e!s}")
 
     if not text.strip():
         if os.path.exists(file_path):
@@ -295,7 +319,7 @@ async def upload_doc(
         embeddings = embedding_model.embed_texts(chunks)
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Embedding failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Embedding failed: {e!s}")
 
     try:
         vs = VectorStore()
@@ -307,7 +331,7 @@ async def upload_doc(
             loaded_vector_stores[doc_id] = vs
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Index build failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Index build failed: {e!s}")
 
     registry = load_registry()
     registry[doc_id] = {
@@ -339,7 +363,7 @@ async def upload_doc(
 def ask_question(
     request: Request,
     body: QueryRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
@@ -357,7 +381,7 @@ def ask_question(
         return result
     except Exception as e:
         logger.exception(f"Agentic RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
 
 
 # ── Ask (Vanilla) ─────────────────────────────────────────────
@@ -366,7 +390,7 @@ def ask_question(
 def vanilla_question(
     request: Request,
     body: QueryRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
@@ -377,7 +401,7 @@ def vanilla_question(
         return result
     except Exception as e:
         logger.exception(f"Vanilla RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
 
 
 # ── Ask Debug ─────────────────────────────────────────────────
@@ -386,7 +410,7 @@ def vanilla_question(
 def ask_debug_question(
     request: Request,
     body: QueryRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
@@ -421,7 +445,7 @@ def ask_debug_question(
         return response_data
     except Exception as e:
         logger.exception(f"Debug RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
 
 
 # ── Streaming Ask (SSE) ───────────────────────────────────────
@@ -430,7 +454,7 @@ def ask_debug_question(
 async def stream_ask(
     request: Request,
     body: QueryRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     """
     Server-Sent Events endpoint.
@@ -502,7 +526,7 @@ async def stream_ask(
 
 
 # ── Document Management ───────────────────────────────────────
-@app.get("/documents", response_model=List[DocumentInfoResponse], tags=["Documents"])
+@app.get("/documents", response_model=list[DocumentInfoResponse], tags=["Documents"])
 def list_documents():
     registry = load_registry()
     docs = list(registry.values())
@@ -518,7 +542,7 @@ def get_document(doc_id: str):
 @app.delete("/documents/{doc_id}", tags=["Documents"])
 def delete_document(
     doc_id: str,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     registry = load_registry()
     if doc_id not in registry:
@@ -544,7 +568,7 @@ def delete_document(
 def retrieve_only_endpoint(
     request: Request,
     body: RetrieveOnlyRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
@@ -567,7 +591,7 @@ def retrieve_only_endpoint(
 def plan_query(
     request: Request,
     body: PlanRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     try:
@@ -581,7 +605,7 @@ def plan_query(
 def rewrite_query_endpoint(
     request: Request,
     body: RewriteRequest,
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     validate_query(body.query)
     try:
@@ -620,7 +644,7 @@ def get_reasoning_tree(session_id: str):
 async def upload_doc_ocr(
     request: Request,
     file: UploadFile = File(...),
-    _key: str = Depends(verify_api_key),
+    _key: dict = Depends(get_current_user),
 ):
     """Upload a scanned PDF — uses OCR (Tesseract/Unstructured) to extract text."""
     filename = safe_filename(file.filename or "scan.pdf")
@@ -652,10 +676,10 @@ async def upload_doc_ocr(
             text = load_pdf(file_path)
         except Exception as e:
             os.remove(file_path)
-            raise HTTPException(status_code=500, detail=f"Failed to extract text: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to extract text: {e!s}")
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {e!s}")
 
     if not text.strip():
         os.remove(file_path)
