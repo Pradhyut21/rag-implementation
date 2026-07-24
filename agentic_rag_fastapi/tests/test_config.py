@@ -4,6 +4,7 @@ Config module unit tests.
 Tests validate settings loading, property helpers, validators,
 and the lru_cache singleton behaviour.
 """
+
 from __future__ import annotations
 
 import os

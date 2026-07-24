@@ -21,68 +21,77 @@ def create_eval_document() -> str:
     doc.add_heading("Agentic RAG Architecture — Comprehensive Overview", level=0)
 
     sections = [
-        ("1. Introduction",
-         "Agentic Retrieval-Augmented Generation (Agentic RAG) is a design pattern that introduces "
-         "multiple autonomous agents to orchestrate the retrieval, reasoning, and synthesis phases in RAG systems. "
-         "Unlike vanilla RAG which simply retrieves documents and outputs answers in a single step, "
-         "Agentic RAG utilises a planner, query rewriter, sufficient context checker, and feedback loop "
-         "to ensure high-fidelity, grounded answers. The system achieves this without hallucinating "
-         "by explicitly verifying whether retrieved context is sufficient before synthesis."),
-
-        ("2. Core Agents",
-         "The Planner Agent is the entry point, decomposing complex queries into 2-4 targeted sub-questions. "
-         "The Query Rewriter Agent transforms each sub-question into a dense-retrieval-optimised search query. "
-         "The Sufficient Context Agent (SC Agent) evaluates context sufficiency using three evidence types: "
-         "explicit (exact answer present), partial (topic covered but detail missing), and missing (not in context). "
-         "Finally, the Synthesis Agent drafts the grounded final answer using only the retrieved evidence."),
-
-        ("3. The Feedback Loop",
-         "When the SC Agent flags insufficient context (partial or missing evidence), it generates a "
-         "structured feedback_log and missing_information list. These are passed through the Query Rewriter "
-         "to produce targeted retrieval queries for the next iteration. The system supports up to 2 iterations "
-         "before falling back to best-available synthesis. This self-correcting loop improves context coverage "
-         "by an average of 34% compared to single-pass retrieval."),
-
-        ("4. Reasoning Modes",
-         "Standard Mode executes the 5-phase pipeline: Plan → Rewrite → Fanout → SC-Check → Synthesise. "
-         "Chain of Thought (CoT) Mode runs 6 sequential reasoning stages with explicit intermediate outputs. "
-         "Tree of Thought (ToT) Mode generates 3 parallel reasoning branches, scores each across 5 dimensions "
-         "(retrieval similarity, coverage, completeness, evidence quality, confidence), selects the best branch, "
-         "and merges the top 2 branches if their scores are within 0.05 of each other."),
-
-        ("5. Observability",
-         "The system uses monkey-patching to intercept all LLM calls and FAISS operations transparently. "
-         "Every request is assigned a session_id via Python ContextVar propagation. "
-         "Telemetry is stored in a 10-table SQLite schema including sessions, spans, events, errors, "
-         "tokens, latency, CoT stages, ToT branches, branch scores, and branch evaluations. "
-         "Average end-to-end latency for standard mode is 8.3 seconds. "
-         "CoT mode adds approximately 3.2 seconds overhead. "
-         "ToT mode adds approximately 6.7 seconds overhead versus standard mode. "
-         "The observability dashboard exposes sessions, traces, events, errors, token costs, and latency breakdown."),
-
-        ("6. Vector Storage",
-         "Documents are chunked into 6-sentence windows with 2-sentence overlap using NLTK sentence tokenisation. "
-         "Each chunk is embedded using sentence-transformers all-MiniLM-L6-v2 (384 dimensions). "
-         "FAISS IndexFlatIP with cosine normalisation is used for similarity search. "
-         "Indexes are persisted as .index and .pkl files. "
-         "In-memory caching of loaded VectorStore objects reduces repeated disk I/O. "
-         "The system supports PDF and DOCX uploads up to 20MB with automatic OCR fallback for scanned PDFs."),
-
-        ("7. Security",
-         "The API is protected by an X-API-Key header (configurable via API_KEY environment variable). "
-         "Rate limiting is enforced: 30 requests per minute for query endpoints, 20 per hour for uploads. "
-         "CORS is restricted to configured allowed origins (not wildcard). "
-         "File uploads are validated by extension and PDF magic bytes. "
-         "Filenames are sanitised to prevent directory traversal attacks. "
-         "Registry writes use atomic temp-file replacement to prevent corruption. "
-         "A thread lock protects the in-memory vector store cache from race conditions."),
-
-        ("8. Deployment",
-         "The system is containerised using Docker with a multi-stage build. "
-         "A docker-compose.yml orchestrates the FastAPI backend (port 8002) and Vite frontend (port 5173). "
-         "Environment configuration uses a .env file with GROQ_API_KEY, API_KEY, and ALLOWED_ORIGINS. "
-         "The backend uses uvicorn with 2 workers. "
-         "Health check endpoint at /health returns status, version, and feature list."),
+        (
+            "1. Introduction",
+            "Agentic Retrieval-Augmented Generation (Agentic RAG) is a design pattern that introduces "
+            "multiple autonomous agents to orchestrate the retrieval, reasoning, and synthesis phases in RAG systems. "
+            "Unlike vanilla RAG which simply retrieves documents and outputs answers in a single step, "
+            "Agentic RAG utilises a planner, query rewriter, sufficient context checker, and feedback loop "
+            "to ensure high-fidelity, grounded answers. The system achieves this without hallucinating "
+            "by explicitly verifying whether retrieved context is sufficient before synthesis.",
+        ),
+        (
+            "2. Core Agents",
+            "The Planner Agent is the entry point, decomposing complex queries into 2-4 targeted sub-questions. "
+            "The Query Rewriter Agent transforms each sub-question into a dense-retrieval-optimised search query. "
+            "The Sufficient Context Agent (SC Agent) evaluates context sufficiency using three evidence types: "
+            "explicit (exact answer present), partial (topic covered but detail missing), and missing (not in context). "
+            "Finally, the Synthesis Agent drafts the grounded final answer using only the retrieved evidence.",
+        ),
+        (
+            "3. The Feedback Loop",
+            "When the SC Agent flags insufficient context (partial or missing evidence), it generates a "
+            "structured feedback_log and missing_information list. These are passed through the Query Rewriter "
+            "to produce targeted retrieval queries for the next iteration. The system supports up to 2 iterations "
+            "before falling back to best-available synthesis. This self-correcting loop improves context coverage "
+            "by an average of 34% compared to single-pass retrieval.",
+        ),
+        (
+            "4. Reasoning Modes",
+            "Standard Mode executes the 5-phase pipeline: Plan → Rewrite → Fanout → SC-Check → Synthesise. "
+            "Chain of Thought (CoT) Mode runs 6 sequential reasoning stages with explicit intermediate outputs. "
+            "Tree of Thought (ToT) Mode generates 3 parallel reasoning branches, scores each across 5 dimensions "
+            "(retrieval similarity, coverage, completeness, evidence quality, confidence), selects the best branch, "
+            "and merges the top 2 branches if their scores are within 0.05 of each other.",
+        ),
+        (
+            "5. Observability",
+            "The system uses monkey-patching to intercept all LLM calls and FAISS operations transparently. "
+            "Every request is assigned a session_id via Python ContextVar propagation. "
+            "Telemetry is stored in a 10-table SQLite schema including sessions, spans, events, errors, "
+            "tokens, latency, CoT stages, ToT branches, branch scores, and branch evaluations. "
+            "Average end-to-end latency for standard mode is 8.3 seconds. "
+            "CoT mode adds approximately 3.2 seconds overhead. "
+            "ToT mode adds approximately 6.7 seconds overhead versus standard mode. "
+            "The observability dashboard exposes sessions, traces, events, errors, token costs, and latency breakdown.",
+        ),
+        (
+            "6. Vector Storage",
+            "Documents are chunked into 6-sentence windows with 2-sentence overlap using NLTK sentence tokenisation. "
+            "Each chunk is embedded using sentence-transformers all-MiniLM-L6-v2 (384 dimensions). "
+            "FAISS IndexFlatIP with cosine normalisation is used for similarity search. "
+            "Indexes are persisted as .index and .pkl files. "
+            "In-memory caching of loaded VectorStore objects reduces repeated disk I/O. "
+            "The system supports PDF and DOCX uploads up to 20MB with automatic OCR fallback for scanned PDFs.",
+        ),
+        (
+            "7. Security",
+            "The API is protected by an X-API-Key header (configurable via API_KEY environment variable). "
+            "Rate limiting is enforced: 30 requests per minute for query endpoints, 20 per hour for uploads. "
+            "CORS is restricted to configured allowed origins (not wildcard). "
+            "File uploads are validated by extension and PDF magic bytes. "
+            "Filenames are sanitised to prevent directory traversal attacks. "
+            "Registry writes use atomic temp-file replacement to prevent corruption. "
+            "A thread lock protects the in-memory vector store cache from race conditions.",
+        ),
+        (
+            "8. Deployment",
+            "The system is containerised using Docker with a multi-stage build. "
+            "A docker-compose.yml orchestrates the FastAPI backend (port 8002) and Vite frontend (port 5173). "
+            "Environment configuration uses a .env file with GROQ_API_KEY, API_KEY, and ALLOWED_ORIGINS. "
+            "The backend uses uvicorn with 2 workers. "
+            "Health check endpoint at /health returns status, version, and feature list.",
+        ),
     ]
 
     for heading, body in sections:
@@ -97,7 +106,13 @@ def create_eval_document() -> str:
 def upload_doc(doc_path: str) -> str:
     print("\n[1/6] Uploading evaluation document...")
     with open(doc_path, "rb") as f:
-        files = {"file": (doc_path, f, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+        files = {
+            "file": (
+                doc_path,
+                f,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        }
         r = requests.post(f"{BASE_URL}/upload-doc", files=files, headers=HEADERS, timeout=60)
     if r.status_code != 200:
         raise RuntimeError(f"Upload failed: {r.status_code} — {r.text}")
@@ -109,29 +124,100 @@ def upload_doc(doc_path: str) -> str:
 # 15 evaluation queries covering all categories
 EVAL_QUERIES = [
     # ── Factual recall ────────────────────────────────────────
-    {"id": "F1", "query": "What is Agentic RAG and how does it differ from vanilla RAG?", "expected_sufficient": True, "category": "factual"},
-    {"id": "F2", "query": "What are the three evidence types used by the Sufficient Context Agent?", "expected_sufficient": True, "category": "factual"},
-    {"id": "F3", "query": "What embedding model is used and what is its vector dimensionality?", "expected_sufficient": True, "category": "factual"},
-    {"id": "F4", "query": "What is the maximum file size supported for document upload?", "expected_sufficient": True, "category": "factual"},
-    {"id": "F5", "query": "How many tables are in the observability SQLite schema?", "expected_sufficient": True, "category": "factual"},
-
+    {
+        "id": "F1",
+        "query": "What is Agentic RAG and how does it differ from vanilla RAG?",
+        "expected_sufficient": True,
+        "category": "factual",
+    },
+    {
+        "id": "F2",
+        "query": "What are the three evidence types used by the Sufficient Context Agent?",
+        "expected_sufficient": True,
+        "category": "factual",
+    },
+    {
+        "id": "F3",
+        "query": "What embedding model is used and what is its vector dimensionality?",
+        "expected_sufficient": True,
+        "category": "factual",
+    },
+    {
+        "id": "F4",
+        "query": "What is the maximum file size supported for document upload?",
+        "expected_sufficient": True,
+        "category": "factual",
+    },
+    {
+        "id": "F5",
+        "query": "How many tables are in the observability SQLite schema?",
+        "expected_sufficient": True,
+        "category": "factual",
+    },
     # ── Comparative ───────────────────────────────────────────
-    {"id": "C1", "query": "Compare the latency overhead of CoT mode versus ToT mode.", "expected_sufficient": True, "category": "comparative"},
-    {"id": "C2", "query": "How does the feedback loop in Agentic RAG improve over single-pass retrieval?", "expected_sufficient": True, "category": "comparative"},
-    {"id": "C3", "query": "What is the difference between explicit, partial, and missing evidence types?", "expected_sufficient": True, "category": "comparative"},
-
+    {
+        "id": "C1",
+        "query": "Compare the latency overhead of CoT mode versus ToT mode.",
+        "expected_sufficient": True,
+        "category": "comparative",
+    },
+    {
+        "id": "C2",
+        "query": "How does the feedback loop in Agentic RAG improve over single-pass retrieval?",
+        "expected_sufficient": True,
+        "category": "comparative",
+    },
+    {
+        "id": "C3",
+        "query": "What is the difference between explicit, partial, and missing evidence types?",
+        "expected_sufficient": True,
+        "category": "comparative",
+    },
     # ── Procedural ────────────────────────────────────────────
-    {"id": "P1", "query": "Describe the 5 phases of the Standard reasoning mode pipeline.", "expected_sufficient": True, "category": "procedural"},
-    {"id": "P2", "query": "How are FAISS indexes persisted and loaded across server restarts?", "expected_sufficient": True, "category": "procedural"},
-    {"id": "P3", "query": "How does Tree of Thought mode select the winning reasoning branch?", "expected_sufficient": True, "category": "procedural"},
-
+    {
+        "id": "P1",
+        "query": "Describe the 5 phases of the Standard reasoning mode pipeline.",
+        "expected_sufficient": True,
+        "category": "procedural",
+    },
+    {
+        "id": "P2",
+        "query": "How are FAISS indexes persisted and loaded across server restarts?",
+        "expected_sufficient": True,
+        "category": "procedural",
+    },
+    {
+        "id": "P3",
+        "query": "How does Tree of Thought mode select the winning reasoning branch?",
+        "expected_sufficient": True,
+        "category": "procedural",
+    },
     # ── Multi-hop ─────────────────────────────────────────────
-    {"id": "M1", "query": "Which agent is responsible for both query decomposition and feedback query generation, and why?", "expected_sufficient": True, "category": "multi-hop"},
-    {"id": "M2", "query": "How does the security model interact with rate limiting and CORS configuration?", "expected_sufficient": True, "category": "multi-hop"},
-
+    {
+        "id": "M1",
+        "query": "Which agent is responsible for both query decomposition and feedback query generation, and why?",
+        "expected_sufficient": True,
+        "category": "multi-hop",
+    },
+    {
+        "id": "M2",
+        "query": "How does the security model interact with rate limiting and CORS configuration?",
+        "expected_sufficient": True,
+        "category": "multi-hop",
+    },
     # ── Missing-info detection ────────────────────────────────
-    {"id": "X1", "query": "What is the exact GPU memory consumption of the embedding model during inference?", "expected_sufficient": False, "category": "missing-info"},
-    {"id": "X2", "query": "What is the Groq LPU benchmark score on MLPerf 2024?", "expected_sufficient": False, "category": "missing-info"},
+    {
+        "id": "X1",
+        "query": "What is the exact GPU memory consumption of the embedding model during inference?",
+        "expected_sufficient": False,
+        "category": "missing-info",
+    },
+    {
+        "id": "X2",
+        "query": "What is the Groq LPU benchmark score on MLPerf 2024?",
+        "expected_sufficient": False,
+        "category": "missing-info",
+    },
 ]
 
 
@@ -149,7 +235,9 @@ def run_query(doc_id: str, q: dict, mode: str) -> dict:
         if r.status_code == 200:
             resp = r.json()
             return {
-                "id": q["id"], "mode": mode, "query": q["query"],
+                "id": q["id"],
+                "mode": mode,
+                "query": q["query"],
                 "category": q["category"],
                 "sufficient": resp["context_sufficient"],
                 "expected_sufficient": q["expected_sufficient"],
@@ -161,11 +249,23 @@ def run_query(doc_id: str, q: dict, mode: str) -> dict:
                 "error": None,
             }
         else:
-            return {"id": q["id"], "mode": mode, "query": q["query"], "category": q["category"],
-                    "error": f"HTTP {r.status_code}: {r.text[:200]}", "correct": False}
+            return {
+                "id": q["id"],
+                "mode": mode,
+                "query": q["query"],
+                "category": q["category"],
+                "error": f"HTTP {r.status_code}: {r.text[:200]}",
+                "correct": False,
+            }
     except Exception as e:
-        return {"id": q["id"], "mode": mode, "query": q["query"], "category": q["category"],
-                "error": str(e), "correct": False}
+        return {
+            "id": q["id"],
+            "mode": mode,
+            "query": q["query"],
+            "category": q["category"],
+            "error": str(e),
+            "correct": False,
+        }
 
 
 def run_evaluation():
@@ -181,17 +281,23 @@ def run_evaluation():
     modes = ["standard", "cot", "tot"]
 
     for mode in modes:
-        print(f"\n[{'2' if mode == 'standard' else '3' if mode == 'cot' else '4'}/6] Running {mode.upper()} mode ({len(EVAL_QUERIES)} queries)...")
+        print(
+            f"\n[{'2' if mode == 'standard' else '3' if mode == 'cot' else '4'}/6] Running {mode.upper()} mode ({len(EVAL_QUERIES)} queries)..."
+        )
         mode_correct = 0
         for q in EVAL_QUERIES:
             result = run_query(doc_id, q, mode)
             all_results.append(result)
             status = "✓" if result.get("correct") else "✗"
             err_info = f" [ERROR: {result['error'][:60]}]" if result.get("error") else ""
-            print(f"    [{status}] {result['id']} ({result['category']}) — sufficient={result.get('sufficient')} (expected={q['expected_sufficient']}){err_info}")
+            print(
+                f"    [{status}] {result['id']} ({result['category']}) — sufficient={result.get('sufficient')} (expected={q['expected_sufficient']}){err_info}"
+            )
             if result.get("correct"):
                 mode_correct += 1
-        print(f"    ── {mode.upper()} accuracy: {mode_correct}/{len(EVAL_QUERIES)} ({mode_correct/len(EVAL_QUERIES)*100:.1f}%)")
+        print(
+            f"    ── {mode.upper()} accuracy: {mode_correct}/{len(EVAL_QUERIES)} ({mode_correct / len(EVAL_QUERIES) * 100:.1f}%)"
+        )
 
     # ── Metrics calculation ───────────────────────────────────
     print("\n[5/6] Calculating metrics...")
@@ -209,7 +315,9 @@ def run_evaluation():
             if cat_r:
                 by_cat[cat] = sum(1 for r in cat_r if r.get("correct")) / len(cat_r)
         return {
-            "mode": mode, "total_queries": total, "correct": correct,
+            "mode": mode,
+            "total_queries": total,
+            "correct": correct,
             "accuracy": round(correct / total, 3) if total else 0,
             "avg_iterations": round(avg_iters, 2),
             "by_category": by_cat,
@@ -224,9 +332,11 @@ def run_evaluation():
     for mode in modes:
         m = metrics[mode]
         if m:
-            print(f"  {mode.upper():8s} → accuracy: {m['accuracy']*100:.1f}%  avg_iterations: {m['avg_iterations']}")
+            print(
+                f"  {mode.upper():8s} → accuracy: {m['accuracy'] * 100:.1f}%  avg_iterations: {m['avg_iterations']}"
+            )
             for cat, acc in m.get("by_category", {}).items():
-                print(f"             {cat:16s}: {acc*100:.0f}%")
+                print(f"             {cat:16s}: {acc * 100:.0f}%")
     if errors:
         print(f"\n  ⚠️  {len(errors)} query/mode combinations errored.")
     print("══════════════════════════════════════════════")

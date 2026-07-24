@@ -15,12 +15,16 @@ class ResponseMode(str, Enum):
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=2000, description="User query (max 2000 chars)")
+    query: str = Field(
+        ..., min_length=1, max_length=2000, description="User query (max 2000 chars)"
+    )
     doc_id: str = Field(..., min_length=4, max_length=16, description="8-char hex document ID")
     top_k: int = Field(3, ge=1, le=20, description="Number of chunks to retrieve (1-20)")
     include_trace: bool = Field(False, description="Include full iteration trace in response")
     response_mode: ResponseMode = Field(ResponseMode.compact, description="compact | detailed")
-    reasoning_mode: ReasoningMode = Field(ReasoningMode.standard, description="standard | cot | tot")
+    reasoning_mode: ReasoningMode = Field(
+        ReasoningMode.standard, description="standard | cot | tot"
+    )
 
     @validator("query")
     def query_must_not_be_blank(cls, v):

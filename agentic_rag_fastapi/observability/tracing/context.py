@@ -12,7 +12,10 @@ active_doc_id_var: ContextVar[Optional[str]] = ContextVar("active_doc_id", defau
 
 # Accumulates tokens and cost for the current request
 # Structure: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "estimated_cost": 0.0}
-token_accumulator_var: ContextVar[Optional[Dict[str, Any]]] = ContextVar("token_accumulator", default=None)
+token_accumulator_var: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
+    "token_accumulator", default=None
+)
+
 
 def init_trace_context(
     session_id: Optional[str] = None,
@@ -29,28 +32,26 @@ def init_trace_context(
     r_id = request_id or str(uuid.uuid4())
     c_id = correlation_id or str(uuid.uuid4())
     w_id = workflow_id or str(uuid.uuid4())
-    
+
     session_id_var.set(s_id)
     request_id_var.set(r_id)
     correlation_id_var.set(c_id)
     workflow_id_var.set(w_id)
     active_iteration_var.set(0)
     active_doc_id_var.set(doc_id)
-    
-    token_accumulator_var.set({
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "total_tokens": 0,
-        "estimated_cost": 0.0
-    })
-    
+
+    token_accumulator_var.set(
+        {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "estimated_cost": 0.0}
+    )
+
     return {
         "session_id": s_id,
         "request_id": r_id,
         "correlation_id": c_id,
         "workflow_id": w_id,
-        "doc_id": doc_id or ""
+        "doc_id": doc_id or "",
     }
+
 
 def get_trace_context() -> Dict[str, Any]:
     """
@@ -60,7 +61,7 @@ def get_trace_context() -> Dict[str, Any]:
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "total_tokens": 0,
-        "estimated_cost": 0.0
+        "estimated_cost": 0.0,
     }
     return {
         "session_id": session_id_var.get(),
@@ -69,8 +70,9 @@ def get_trace_context() -> Dict[str, Any]:
         "workflow_id": workflow_id_var.get(),
         "active_iteration": active_iteration_var.get(),
         "doc_id": active_doc_id_var.get(),
-        **accum
+        **accum,
     }
+
 
 def update_accumulated_tokens(prompt: int, completion: int, total: int, cost: float):
     """

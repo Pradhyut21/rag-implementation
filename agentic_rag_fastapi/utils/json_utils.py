@@ -1,6 +1,7 @@
 import json
 import re
 
+
 def extract_json_object(text: str):
     """
     Extract first JSON object or array from model output.

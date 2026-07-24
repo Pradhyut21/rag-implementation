@@ -5,6 +5,7 @@ Tests cover: required field enforcement, field constraints (min/max),
 enum validation (ReasoningMode, ResponseMode), blank-query rejection,
 and correct default values.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -25,7 +26,7 @@ class TestQueryRequest:
         req = QueryRequest(query="Hello world?", doc_id="abc12345")
         assert req.query == "Hello world?"
         assert req.doc_id == "abc12345"
-        assert req.top_k == 3                        # default
+        assert req.top_k == 3  # default
         assert req.reasoning_mode.value == "standard"  # default
 
     @pytest.mark.unit

@@ -5,6 +5,7 @@ Uses pydantic-settings to load and validate all configuration from
 environment variables and .env files. Single source of truth for all
 runtime parameters — no magic strings scattered across the codebase.
 """
+
 from __future__ import annotations
 
 import os
@@ -84,9 +85,7 @@ class Settings(BaseSettings):
         return self.max_file_size_mb * 1024 * 1024
 
     # ── Chunking ──────────────────────────────────────────────
-    chunk_size: int = Field(
-        default=6, ge=1, le=50, description="Number of sentences per chunk"
-    )
+    chunk_size: int = Field(default=6, ge=1, le=50, description="Number of sentences per chunk")
     chunk_overlap: int = Field(
         default=2, ge=0, le=10, description="Number of overlapping sentences between chunks"
     )

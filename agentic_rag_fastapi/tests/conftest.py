@@ -5,6 +5,7 @@ All expensive objects (FastAPI TestClient, embedding model, vector store)
 are created once per test session and reused. External calls (Groq LLM,
 FAISS disk I/O) are mocked by default so unit tests run offline.
 """
+
 from __future__ import annotations
 
 import io
@@ -45,6 +46,7 @@ def client() -> Generator[TestClient, None, None]:
 
     with patch("agents.llm.Groq", return_value=mock_groq):
         from app import app
+
         with TestClient(app, raise_server_exceptions=False) as tc:
             yield tc
 
@@ -64,8 +66,10 @@ def mock_llm_response():
     Context-manager fixture: patch ``safe_generate`` to return a
     configurable string without making a real API call.
     """
+
     def _make_mock(return_value: str = "mocked response"):
         return patch("agents.llm.safe_generate", return_value=return_value)
+
     return _make_mock
 
 
@@ -176,6 +180,7 @@ def sample_docx_bytes() -> bytes:
     Uses python-docx to create an in-memory document.
     """
     from docx import Document as DocxDocument
+
     doc = DocxDocument()
     doc.add_heading("Test Document", level=0)
     doc.add_paragraph(

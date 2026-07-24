@@ -10,6 +10,7 @@ to answer the user's query. Returns a structured verdict with:
 - ``reasoning_summary``: str — explanation of the verdict
 - ``evidence_type``: "explicit" | "partial" | "missing"
 """
+
 from __future__ import annotations
 
 import json

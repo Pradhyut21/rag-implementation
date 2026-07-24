@@ -14,12 +14,9 @@ from observability.storage.db import save_reasoning_chain, save_reasoning_stage
 
 logger = logging.getLogger("agentic_rag.cot_reasoner")
 
+
 def run_cot_reasoning(
-    query: str,
-    embedding_model,
-    vector_store,
-    top_k: int = 3,
-    session_id: str = None
+    query: str, embedding_model, vector_store, top_k: int = 3, session_id: str = None
 ) -> Dict[str, Any]:
     """
     Executes the Chain of Thought (CoT) reasoning workflow, running through
@@ -27,32 +24,34 @@ def run_cot_reasoning(
     """
     if not session_id:
         session_id = str(uuid.uuid4())
-        
+
     logger.info(f"Running CoT reasoning workflow for session: {session_id}")
-    
+
     # Save the root reasoning chain entry
     timestamp = datetime.utcnow().isoformat() + "Z"
     save_reasoning_chain(session_id, query, timestamp)
-    
+
     stages_log = []
-    
+
     # helper to run and record a stage
-    def execute_stage(index: int, name: str, input_str: str, action_fn) -> Tuple[Any, Dict[str, Any]]:
+    def execute_stage(
+        index: int, name: str, input_str: str, action_fn
+    ) -> Tuple[Any, Dict[str, Any]]:
         start_time = time.time()
         stage_id = str(uuid.uuid4())
         status = "SUCCESS"
         output_summary = ""
         result = None
-        
+
         try:
             result, output_summary = action_fn()
         except Exception as e:
             status = "FAILED"
             output_summary = f"Stage failed with error: {str(e)}"
             logger.error(f"Error in stage {name}: {e}")
-            
+
         duration = time.time() - start_time
-        
+
         stage_data = {
             "stage_id": stage_id,
             "session_id": session_id,
@@ -62,16 +61,16 @@ def run_cot_reasoning(
             "output_summary": output_summary,
             "execution_time": round(duration, 3),
             "status": status,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.utcnow().isoformat() + "Z",
         }
-        
+
         # Save to SQLite db
         save_reasoning_stage(stage_data)
         stages_log.append(stage_data)
-        
+
         if status == "FAILED" and result is None:
             raise RuntimeError(f"CoT reasoning failed at stage: {name}")
-            
+
         return result, stage_data
 
     # --- Step 1: Understand the user query ---
@@ -87,10 +86,7 @@ Query:
         return summary, summary
 
     query_analysis, _ = execute_stage(
-        index=1,
-        name="Step 1: Understand the user query",
-        input_str=query,
-        action_fn=stage_1_action
+        index=1, name="Step 1: Understand the user query", input_str=query, action_fn=stage_1_action
     )
 
     # --- Step 2: Identify required information ---
@@ -107,7 +103,7 @@ Do not use markdown formatting. Keep it concise.
         index=2,
         name="Step 2: Identify required information",
         input_str=f"Analysis: {query_analysis}",
-        action_fn=stage_2_action
+        action_fn=stage_2_action,
     )
 
     # --- Step 3: Determine retrieval strategy ---
@@ -120,20 +116,20 @@ Do not use markdown formatting. Keep it concise.
         index=3,
         name="Step 3: Determine retrieval strategy",
         input_str=f"Required info: {required_info}",
-        action_fn=stage_3_action
+        action_fn=stage_3_action,
     )
 
     # --- Step 4: Retrieve supporting evidence ---
     def stage_4_action():
         retrieved_results = []
         rewritten_queries = []
-        
+
         for sq in sub_queries:
             rewritten = query_rewriter(sq)
             rewritten_queries.append(rewritten)
             results = retrieve(rewritten, embedding_model, vector_store, top_k=top_k)
             retrieved_results.extend(results)
-            
+
         # Deduplicate retrieved context
         seen_chunks = set()
         aggregated_context_list = []
@@ -143,22 +139,24 @@ Do not use markdown formatting. Keep it concise.
                 seen_chunks.add(chunk)
                 aggregated_context_list.append(chunk)
         aggregated_context = "\n\n".join(aggregated_context_list)
-        
-        summary = f"Retrieved {len(aggregated_context_list)} unique chunks matching rewritten queries."
+
+        summary = (
+            f"Retrieved {len(aggregated_context_list)} unique chunks matching rewritten queries."
+        )
         return (aggregated_context, retrieved_results), summary
 
     (aggregated_context, retrieved_results), _ = execute_stage(
         index=4,
         name="Step 4: Retrieve supporting evidence",
         input_str=f"Sub-queries: {sub_queries}",
-        action_fn=stage_4_action
+        action_fn=stage_4_action,
     )
 
     # --- Step 5: Evaluate context sufficiency ---
     # Create intermediate draft first
     draft_prompt = f"Use the context to answer the query:\nQUERY: {query}\nCONTEXT: {aggregated_context}\nWrite a draft answer."
     intermediate_draft = safe_generate(draft_prompt)
-    
+
     def stage_5_action():
         sc_result = sufficient_context_agent(query, aggregated_context, intermediate_draft)
         summary = (
@@ -172,7 +170,7 @@ Do not use markdown formatting. Keep it concise.
         index=5,
         name="Step 5: Evaluate context sufficiency",
         input_str=f"Context Length: {len(aggregated_context)} characters",
-        action_fn=stage_5_action
+        action_fn=stage_5_action,
     )
 
     # --- Step 6: Generate grounded answer ---
@@ -185,9 +183,9 @@ Do not use markdown formatting. Keep it concise.
         index=6,
         name="Step 6: Generate grounded answer",
         input_str=f"Final context length: {len(aggregated_context)}",
-        action_fn=stage_6_action
+        action_fn=stage_6_action,
     )
-    
+
     # citations
     citations = []
     seen_indices = set()
@@ -195,13 +193,17 @@ Do not use markdown formatting. Keep it concise.
         idx = ret["index"]
         if idx not in seen_indices:
             seen_indices.add(idx)
-            citations.append({
-                "chunk_index": idx,
-                "text_preview": ret["chunk"][:200] + "..." if len(ret["chunk"]) > 200 else ret["chunk"],
-                "score": ret["score"]
-            })
+            citations.append(
+                {
+                    "chunk_index": idx,
+                    "text_preview": ret["chunk"][:200] + "..."
+                    if len(ret["chunk"]) > 200
+                    else ret["chunk"],
+                    "score": ret["score"],
+                }
+            )
     citations = sorted(citations, key=lambda x: x["score"], reverse=True)[:5]
-    
+
     return {
         "query": query,
         "answer": final_answer,
@@ -209,5 +211,5 @@ Do not use markdown formatting. Keep it concise.
         "missing_information": sc_result.get("missing_information", []),
         "citations": citations,
         "stages": stages_log,
-        "final_context": aggregated_context
+        "final_context": aggregated_context,
     }

@@ -4,6 +4,7 @@ Unit tests for individual agent functions.
 All external I/O (Groq API, FAISS) is mocked — these tests run offline
 and should complete in under 2 seconds.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -20,7 +21,9 @@ class TestPlannerAgent:
     @pytest.mark.unit
     def test_returns_list_of_strings(self):
         """planner_agent must always return a list[str]."""
-        with patch("agents.llm.safe_generate", return_value='["What is RAG?", "How does retrieval work?"]'):
+        with patch(
+            "agents.llm.safe_generate", return_value='["What is RAG?", "How does retrieval work?"]'
+        ):
             from agents.planner import planner_agent
 
             result = planner_agent("Explain RAG architecture")
@@ -243,7 +246,12 @@ class TestAgenticLoopHelpers:
 
         fanout = [
             {"retrieved": [{"chunk": "chunk A", "score": 0.9, "index": 0}]},
-            {"retrieved": [{"chunk": "chunk A", "score": 0.9, "index": 0}, {"chunk": "chunk B", "score": 0.8, "index": 1}]},
+            {
+                "retrieved": [
+                    {"chunk": "chunk A", "score": 0.9, "index": 0},
+                    {"chunk": "chunk B", "score": 0.8, "index": 1},
+                ]
+            },
         ]
         result = aggregate_fanout_context(fanout)
         assert result.count("chunk A") == 1
@@ -293,7 +301,9 @@ class TestVanillaRag:
         ):
             from agents.agentic_loop import vanilla_rag
 
-            result = vanilla_rag("What is the answer?", mock_embedding_model, mock_vector_store, top_k=3)
+            result = vanilla_rag(
+                "What is the answer?", mock_embedding_model, mock_vector_store, top_k=3
+            )
 
         assert "query" in result
         assert "answer" in result

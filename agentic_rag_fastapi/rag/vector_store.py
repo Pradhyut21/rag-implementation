@@ -3,6 +3,7 @@ import os
 import pickle
 import numpy as np
 
+
 class VectorStore:
     def __init__(self):
         self.index = None
@@ -26,11 +27,7 @@ class VectorStore:
         for score, idx in zip(scores[0], indices[0]):
             if idx == -1:
                 continue
-            results.append({
-                "chunk": self.chunks[idx],
-                "score": float(score),
-                "index": int(idx)
-            })
+            results.append({"chunk": self.chunks[idx], "score": float(score), "index": int(idx)})
 
         return results
 

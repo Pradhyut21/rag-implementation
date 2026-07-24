@@ -5,6 +5,7 @@ Decomposes a complex user query into 2-5 focused sub-questions,
 each targeting a distinct aspect of the information need.
 This narrows the retrieval space and improves FAISS recall.
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,7 +42,9 @@ User Query:
         if isinstance(sub_queries, list) and sub_queries:
             return [str(x) for x in sub_queries]
     except Exception as exc:
-        logger.warning("Planner failed to parse LLM response: %s | response=%r", exc, response[:200])
+        logger.warning(
+            "Planner failed to parse LLM response: %s | response=%r", exc, response[:200]
+        )
 
     logger.info("Planner falling back to original query.")
     return [query]

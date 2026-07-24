@@ -4,6 +4,7 @@ Query Rewriter Agent for the Agentic RAG pipeline.
 Transforms a sub-question into a technical search query
 optimized for dense vector retrieval (FAISS + sentence-transformers).
 """
+
 from __future__ import annotations
 
 import logging
@@ -34,7 +35,9 @@ Question:
     response = llm.safe_generate(prompt).strip()
 
     if not response:
-        logger.warning("Rewriter returned empty response for sub_query=%r — using original.", sub_query)
+        logger.warning(
+            "Rewriter returned empty response for sub_query=%r — using original.", sub_query
+        )
         return sub_query
 
     return response

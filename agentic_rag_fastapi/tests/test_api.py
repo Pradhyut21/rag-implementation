@@ -4,6 +4,7 @@ API endpoint tests using FastAPI TestClient.
 Tests are grouped by endpoint tag. External I/O (Groq, FAISS disk) is
 mocked. Tests run offline and should complete in under 10 seconds.
 """
+
 from __future__ import annotations
 
 import io
@@ -80,7 +81,13 @@ class TestUploadEndpoint:
         ):
             resp = client.post(
                 "/upload-doc",
-                files={"file": ("test.docx", io.BytesIO(sample_docx_bytes), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                files={
+                    "file": (
+                        "test.docx",
+                        io.BytesIO(sample_docx_bytes),
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
                 headers=auth_headers,
             )
         # Allow 200 or 500 (if model not available in CI) but not 4xx
@@ -137,7 +144,13 @@ class TestUploadEndpoint:
         ):
             resp = client.post(
                 "/upload-doc",
-                files={"file": ("../../etc/passwd.docx", io.BytesIO(sample_docx_bytes), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                files={
+                    "file": (
+                        "../../etc/passwd.docx",
+                        io.BytesIO(sample_docx_bytes),
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
                 headers=auth_headers,
             )
         # Should not be 500 due to traversal — either succeeds or 400

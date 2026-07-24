@@ -3,22 +3,32 @@ import os
 import requests
 from docx import Document
 
+
 # 1. Create a dummy test document
 def create_dummy_doc():
     filename = "test_doc_v2.docx"
     doc = Document()
-    doc.add_paragraph("Google's Agentic RAG architecture is a state-of-the-art framework that coordinates multiple agents.")
-    doc.add_paragraph("The Sufficient Context Agent checks the intermediate draft against the retrieved context to decide if information is missing.")
-    doc.add_paragraph("If context is insufficient, it logs the feedback and triggers another iteration of retrieval with rewritten search queries.")
-    doc.add_paragraph("The Synthesis Agent is responsible for composing the final answer grounded strictly on verified context.")
+    doc.add_paragraph(
+        "Google's Agentic RAG architecture is a state-of-the-art framework that coordinates multiple agents."
+    )
+    doc.add_paragraph(
+        "The Sufficient Context Agent checks the intermediate draft against the retrieved context to decide if information is missing."
+    )
+    doc.add_paragraph(
+        "If context is insufficient, it logs the feedback and triggers another iteration of retrieval with rewritten search queries."
+    )
+    doc.add_paragraph(
+        "The Synthesis Agent is responsible for composing the final answer grounded strictly on verified context."
+    )
     doc.save(filename)
     print(f"Dummy document '{filename}' created.")
     return filename
 
+
 def run_tests():
     filename = create_dummy_doc()
     base_url = "http://127.0.0.1:8000"
-    
+
     # Wait for Uvicorn server to start if running concurrently
     print("Waiting 3 seconds for FastAPI server to start...")
     time.sleep(3)
@@ -40,7 +50,13 @@ def run_tests():
     doc_id = None
     try:
         with open(filename, "rb") as f:
-            files = {"file": (filename, f, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+            files = {
+                "file": (
+                    filename,
+                    f,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            }
             r = requests.post(f"{base_url}/upload-doc", files=files)
         print("POST /upload-doc status:", r.status_code)
         resp = r.json()
@@ -90,7 +106,7 @@ def run_tests():
         payload = {
             "query": "What is the role of the Sufficient Context Agent?",
             "doc_id": doc_id,
-            "top_k": 3
+            "top_k": 3,
         }
         r = requests.post(f"{base_url}/vanilla-ask", json=payload)
         print("POST /vanilla-ask status:", r.status_code)
@@ -110,7 +126,7 @@ def run_tests():
             "query": "What is the role of the Sufficient Context Agent?",
             "doc_id": doc_id,
             "top_k": 3,
-            "include_trace": False
+            "include_trace": False,
         }
         r = requests.post(f"{base_url}/ask", json=payload)
         print("POST /ask (include_trace=False) status:", r.status_code)
@@ -121,7 +137,7 @@ def run_tests():
         print("  - missing_information:", resp.get("missing_information"))
         print("  - trace:", resp.get("trace"))
         print("  - final_context:", resp.get("final_context"))
-        
+
         assert r.status_code == 200
         assert resp["trace"] is None
         assert resp["final_context"] is None
@@ -135,7 +151,7 @@ def run_tests():
             "query": "What is the role of the Sufficient Context Agent?",
             "doc_id": doc_id,
             "top_k": 3,
-            "include_trace": True
+            "include_trace": True,
         }
         r = requests.post(f"{base_url}/ask", json=payload)
         print("POST /ask (include_trace=True) status:", r.status_code)
@@ -155,7 +171,7 @@ def run_tests():
             "query": "What latency measurements did Google report for the Sufficient Context Agent?",
             "doc_id": doc_id,
             "top_k": 3,
-            "include_trace": True
+            "include_trace": True,
         }
         r = requests.post(f"{base_url}/ask", json=payload)
         print("POST /ask (missing latency) status:", r.status_code)
@@ -164,7 +180,7 @@ def run_tests():
         print("  - iterations:", resp.get("iterations"))
         print("  - context_sufficient:", resp.get("context_sufficient"))
         print("  - missing_information:", resp.get("missing_information"))
-        
+
         assert r.status_code == 200
         assert "iterations" in resp
         assert resp["iterations"] >= 1
@@ -173,20 +189,20 @@ def run_tests():
         # and missing_information should list missing items
         if not resp["context_sufficient"]:
             assert len(resp["missing_information"]) > 0
-            print("Successfully verified feedback loop: Context marked insufficient and missing info populated!")
+            print(
+                "Successfully verified feedback loop: Context marked insufficient and missing info populated!"
+            )
         else:
-            print("Note: LLM judged context sufficient, which is possible but unexpected given doc text.")
+            print(
+                "Note: LLM judged context sufficient, which is possible but unexpected given doc text."
+            )
     except Exception as e:
         print("Missing information query test failed:", e)
 
     # I. Test non-existent doc_id (404 check)
     print("\n--- TEST I: Query Invalid Document ---")
     try:
-        payload = {
-            "query": "Hello",
-            "doc_id": "nonexistent_id",
-            "top_k": 3
-        }
+        payload = {"query": "Hello", "doc_id": "nonexistent_id", "top_k": 3}
         r = requests.post(f"{base_url}/ask", json=payload)
         print("POST /ask (invalid doc_id) status:", r.status_code)
         print("Response:", r.json())
@@ -202,7 +218,7 @@ def run_tests():
         print(f"DELETE /documents/{doc_id} status:", r.status_code)
         print("Response:", r.json())
         assert r.status_code == 200
-        
+
         # Verify 404 on subsequent get
         r_get = requests.get(f"{base_url}/documents/{doc_id}")
         print("GET deleted doc status:", r_get.status_code)
@@ -215,6 +231,7 @@ def run_tests():
     if os.path.exists(filename):
         os.remove(filename)
         print(f"Cleaned up local file: {filename}")
+
 
 if __name__ == "__main__":
     run_tests()

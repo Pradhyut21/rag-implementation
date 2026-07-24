@@ -36,6 +36,7 @@ def load_pdf_with_ocr(file_path: str) -> str:
     # Method 1: Try Unstructured.io (best quality, handles tables/layout)
     try:
         from unstructured.partition.pdf import partition_pdf
+
         elements = partition_pdf(
             filename=file_path,
             strategy="hi_res",
@@ -43,7 +44,9 @@ def load_pdf_with_ocr(file_path: str) -> str:
         )
         text_parts = [str(el) for el in elements if str(el).strip()]
         if text_parts:
-            logger.info(f"Unstructured.io OCR extracted {len(text_parts)} elements from {file_path}")
+            logger.info(
+                f"Unstructured.io OCR extracted {len(text_parts)} elements from {file_path}"
+            )
             return "\n".join(text_parts)
     except ImportError:
         logger.warning("unstructured not installed, falling back to pytesseract.")
@@ -58,6 +61,7 @@ def load_pdf_with_ocr(file_path: str) -> str:
 
         try:
             from pdf2image import convert_from_path
+
             images = convert_from_path(file_path, dpi=300)
         except ImportError:
             # Fallback: just run on first page using pypdf's image extraction

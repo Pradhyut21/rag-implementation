@@ -39,19 +39,19 @@ from schemas import (
     RewriteResponse,
     RetrieveOnlyRequest,
     RetrieveOnlyResponse,
-    AskDebugResponse
+    AskDebugResponse,
 )
 
 # ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 )
 logger = logging.getLogger("agentic_rag_api")
 
 # ── Observability setup ───────────────────────────────────────
 from observability import setup_observability, ObservabilityMiddleware
 from observability.routes import router as observability_router
+
 setup_observability()
 
 # ── NLTK ─────────────────────────────────────────────────────
@@ -79,8 +79,7 @@ app.add_middleware(ObservabilityMiddleware)
 
 # ── CORS (restrict in production) ────────────────────────────
 ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+    "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
 ).split(",")
 
 app.add_middleware(
@@ -102,6 +101,7 @@ api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 if DEMO_MODE:
     logger.warning("⚠️ DEMO_MODE is ENABLED — API key verification is bypassed for development.")
 
+
 async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     """Validate API key. Returns the key if valid, raises 401 if missing/invalid."""
     if DEMO_MODE:
@@ -111,6 +111,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     if API_KEY and api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key.")
     return api_key
+
 
 # ── File / Query constants ────────────────────────────────────
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
@@ -127,8 +128,9 @@ for d in [UPLOAD_DIR, INDEX_DIR, DEBUG_RUNS_DIR]:
 # ── Global models (singletons with thread safety) ─────────────
 embedding_model = EmbeddingModel()
 loaded_vector_stores: Dict[str, VectorStore] = {}
-_vs_lock = threading.Lock()          # Thread-safe vector store cache
-_registry_lock = threading.Lock()    # Thread-safe registry access
+_vs_lock = threading.Lock()  # Thread-safe vector store cache
+_registry_lock = threading.Lock()  # Thread-safe registry access
+
 
 # ── Registry helpers (atomic writes) ─────────────────────────
 def load_registry() -> dict:
@@ -142,6 +144,7 @@ def load_registry() -> dict:
             logger.error(f"Failed to load registry: {e}")
             return {}
 
+
 def save_registry(registry: dict):
     """Atomic write using a temp file + os.replace to prevent corruption."""
     with _registry_lock:
@@ -153,11 +156,13 @@ def save_registry(registry: dict):
         except Exception as e:
             logger.error(f"Failed to save registry: {e}")
 
+
 def get_doc_metadata(doc_id: str) -> dict:
     registry = load_registry()
     if doc_id not in registry:
         raise HTTPException(status_code=404, detail=f"Document ID '{doc_id}' not found.")
     return registry[doc_id]
+
 
 def get_vector_store_for_doc(doc_id: str) -> VectorStore:
     registry = load_registry()
@@ -185,6 +190,7 @@ def get_vector_store_for_doc(doc_id: str) -> VectorStore:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load vector store: {str(e)}")
 
+
 # ── Sanitize filename ─────────────────────────────────────────
 def safe_filename(filename: str) -> str:
     """Strip directory traversal and enforce safe characters."""
@@ -193,6 +199,7 @@ def safe_filename(filename: str) -> str:
     safe = "".join(c for c in basename if c.isalnum() or c in "-_.")
     return safe or "upload"
 
+
 # ── Helpers ───────────────────────────────────────────────────
 def validate_query(query: str):
     if not query or not query.strip():
@@ -200,14 +207,17 @@ def validate_query(query: str):
     if len(query) > MAX_QUERY_LENGTH:
         raise HTTPException(
             status_code=400,
-            detail=f"Query too long ({len(query)} chars). Maximum is {MAX_QUERY_LENGTH}."
+            detail=f"Query too long ({len(query)} chars). Maximum is {MAX_QUERY_LENGTH}.",
         )
 
+
 # ── Routes ────────────────────────────────────────────────────
+
 
 @app.get("/", tags=["Health"])
 def read_root():
     return {"message": "Enterprise Agentic RAG API v3.0", "docs": "/docs", "health": "/health"}
+
 
 @app.get("/health", tags=["Health"])
 def health():
@@ -215,8 +225,9 @@ def health():
         "status": "ok",
         "version": "3.0",
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "features": ["standard", "cot", "tot", "observability", "streaming"]
+        "features": ["standard", "cot", "tot", "observability", "streaming"],
     }
+
 
 # ── Upload ────────────────────────────────────────────────────
 @app.post("/upload-doc", response_model=UploadDocResponse, tags=["Documents"])
@@ -238,12 +249,14 @@ async def upload_doc(
     if len(content) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large ({len(content)//1024//1024}MB). Maximum is {MAX_FILE_SIZE_MB}MB."
+            detail=f"File too large ({len(content) // 1024 // 1024}MB). Maximum is {MAX_FILE_SIZE_MB}MB.",
         )
 
     # Magic bytes validation
     if filename.lower().endswith(".pdf") and not content.startswith(b"%PDF"):
-        raise HTTPException(status_code=400, detail="File claims to be PDF but magic bytes are invalid.")
+        raise HTTPException(
+            status_code=400, detail="File claims to be PDF but magic bytes are invalid."
+        )
 
     doc_id = uuid.uuid4().hex[:8]
     unique_name = f"{doc_id}_{filename}"
@@ -268,7 +281,7 @@ async def upload_doc(
             os.remove(file_path)
         raise HTTPException(
             status_code=400,
-            detail="Document has no readable text. If it is a scanned PDF, enable OCR mode."
+            detail="Document has no readable text. If it is a scanned PDF, enable OCR mode.",
         )
 
     chunk_size = 6
@@ -307,12 +320,18 @@ async def upload_doc(
         "chunks_path": chunks_path,
         "chunk_size": chunk_size,
         "overlap": overlap,
-        "embedding_model": "all-MiniLM-L6-v2"
+        "embedding_model": "all-MiniLM-L6-v2",
     }
     save_registry(registry)
 
     logger.info(f"Indexed '{filename}' → doc_id={doc_id}, chunks={len(chunks)}")
-    return {"message": "Document indexed successfully", "doc_id": doc_id, "file_name": filename, "num_chunks": len(chunks)}
+    return {
+        "message": "Document indexed successfully",
+        "doc_id": doc_id,
+        "file_name": filename,
+        "num_chunks": len(chunks),
+    }
+
 
 # ── Ask (Agentic) ─────────────────────────────────────────────
 @app.post("/ask", response_model=AskResponse, tags=["RAG"])
@@ -340,6 +359,7 @@ def ask_question(
         logger.exception(f"Agentic RAG failed: {e}")
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
 
+
 # ── Ask (Vanilla) ─────────────────────────────────────────────
 @app.post("/vanilla-ask", response_model=VanillaAskResponse, tags=["RAG"])
 @limiter.limit("30/minute")
@@ -351,11 +371,14 @@ def vanilla_question(
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
     try:
-        result = vanilla_rag(query=body.query, embedding_model=embedding_model, vector_store=vs, top_k=body.top_k)
+        result = vanilla_rag(
+            query=body.query, embedding_model=embedding_model, vector_store=vs, top_k=body.top_k
+        )
         return result
     except Exception as e:
         logger.exception(f"Vanilla RAG failed: {e}")
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+
 
 # ── Ask Debug ─────────────────────────────────────────────────
 @app.post("/ask-debug", response_model=AskDebugResponse, tags=["RAG"])
@@ -400,6 +423,7 @@ def ask_debug_question(
         logger.exception(f"Debug RAG failed: {e}")
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
 
+
 # ── Streaming Ask (SSE) ───────────────────────────────────────
 @app.post("/stream-ask", tags=["RAG"])
 @limiter.limit("20/minute")
@@ -417,6 +441,7 @@ async def stream_ask(
 
     async def event_generator():
         import asyncio
+
         executor = ThreadPoolExecutor(max_workers=1)
 
         def run_pipeline():
@@ -430,26 +455,43 @@ async def stream_ask(
 
         try:
             # Send stage updates
-            stages = ["Planning sub-queries...", "Rewriting queries for dense retrieval...",
-                      "Running FAISS fanout search...", "Auditing context sufficiency...",
-                      "Synthesizing final answer..."]
+            stages = [
+                "Planning sub-queries...",
+                "Rewriting queries for dense retrieval...",
+                "Running FAISS fanout search...",
+                "Auditing context sufficiency...",
+                "Synthesizing final answer...",
+            ]
             for i, stage in enumerate(stages):
-                yield {"event": "stage", "data": json.dumps({"stage": stage, "step": i + 1, "total": len(stages)})}
+                yield {
+                    "event": "stage",
+                    "data": json.dumps({"stage": stage, "step": i + 1, "total": len(stages)}),
+                }
                 await asyncio.sleep(0.3)
 
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(executor, run_pipeline)
 
-            yield {"event": "result", "data": json.dumps({
-                "answer": result["answer"],
-                "iterations": result["iterations"],
-                "context_sufficient": result["context_sufficient"],
-                "evidence_type": result.get("trace", [{}])[-1].get("sufficient_context_result", {}).get("evidence_type") if result.get("trace") else None,
-                "citations": result["citations"],
-                "session_id": result.get("session_id"),
-                "trace": result.get("trace", []),
-                "fallback_used": result.get("fallback_used", False),
-            }, default=str)}
+            yield {
+                "event": "result",
+                "data": json.dumps(
+                    {
+                        "answer": result["answer"],
+                        "iterations": result["iterations"],
+                        "context_sufficient": result["context_sufficient"],
+                        "evidence_type": result.get("trace", [{}])[-1]
+                        .get("sufficient_context_result", {})
+                        .get("evidence_type")
+                        if result.get("trace")
+                        else None,
+                        "citations": result["citations"],
+                        "session_id": result.get("session_id"),
+                        "trace": result.get("trace", []),
+                        "fallback_used": result.get("fallback_used", False),
+                    },
+                    default=str,
+                ),
+            }
             yield {"event": "done", "data": "complete"}
 
         except Exception as e:
@@ -457,6 +499,7 @@ async def stream_ask(
             yield {"event": "error", "data": json.dumps({"message": str(e)})}
 
     return EventSourceResponse(event_generator())
+
 
 # ── Document Management ───────────────────────────────────────
 @app.get("/documents", response_model=List[DocumentInfoResponse], tags=["Documents"])
@@ -466,9 +509,11 @@ def list_documents():
     docs.sort(key=lambda x: x.get("uploaded_at", ""), reverse=True)
     return docs
 
+
 @app.get("/documents/{doc_id}", response_model=DocumentInfoResponse, tags=["Documents"])
 def get_document(doc_id: str):
     return get_doc_metadata(doc_id)
+
 
 @app.delete("/documents/{doc_id}", tags=["Documents"])
 def delete_document(
@@ -492,6 +537,7 @@ def delete_document(
     logger.info(f"Deleted document doc_id={doc_id}")
     return {"message": f"Document '{doc_id}' deleted successfully."}
 
+
 # ── Agent Inspection Endpoints ────────────────────────────────
 @app.post("/retrieve-only", response_model=RetrieveOnlyResponse, tags=["Agents"])
 @limiter.limit("30/minute")
@@ -508,10 +554,13 @@ def retrieve_only_endpoint(
         return {
             "original_query": body.query,
             "rewritten_query": rewritten,
-            "retrieved_chunks": [{"chunk": r["chunk"], "score": r["score"], "index": r["index"]} for r in retrieved]
+            "retrieved_chunks": [
+                {"chunk": r["chunk"], "score": r["score"], "index": r["index"]} for r in retrieved
+            ],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/plan", response_model=PlanResponse, tags=["Agents"])
 @limiter.limit("30/minute")
@@ -526,6 +575,7 @@ def plan_query(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/rewrite", response_model=RewriteResponse, tags=["Agents"])
 @limiter.limit("30/minute")
 def rewrite_query_endpoint(
@@ -539,24 +589,30 @@ def rewrite_query_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # ── Reasoning Telemetry ───────────────────────────────────────
 from observability.storage.db import get_reasoning_chain_details, get_reasoning_tree_details
+
 
 @app.get("/reasoning/cot/{session_id}", tags=["Reasoning"])
 def get_reasoning_cot(session_id: str):
     return get_reasoning_chain_details(session_id)
 
+
 @app.get("/reasoning/chain/{session_id}", tags=["Reasoning"])
 def get_reasoning_chain(session_id: str):
     return get_reasoning_chain_details(session_id)
+
 
 @app.get("/reasoning/tot/{session_id}", tags=["Reasoning"])
 def get_reasoning_tot(session_id: str):
     return get_reasoning_tree_details(session_id)
 
+
 @app.get("/reasoning/tree/{session_id}", tags=["Reasoning"])
 def get_reasoning_tree(session_id: str):
     return get_reasoning_tree_details(session_id)
+
 
 # ── OCR Upload Endpoint ───────────────────────────────────────
 @app.post("/upload-doc-ocr", response_model=UploadDocResponse, tags=["Documents"])
@@ -573,7 +629,9 @@ async def upload_doc_ocr(
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(status_code=413, detail=f"File too large. Maximum is {MAX_FILE_SIZE_MB}MB.")
+        raise HTTPException(
+            status_code=413, detail=f"File too large. Maximum is {MAX_FILE_SIZE_MB}MB."
+        )
 
     doc_id = uuid.uuid4().hex[:8]
     file_path = os.path.join(UPLOAD_DIR, f"{doc_id}_{filename}")
@@ -583,12 +641,14 @@ async def upload_doc_ocr(
     # Try OCR extraction
     try:
         from rag.ingestion import load_pdf_with_ocr
+
         text = load_pdf_with_ocr(file_path)
     except ImportError:
         text = ""
         logger.warning("OCR dependencies not installed. Falling back to pypdf.")
         try:
             from rag.ingestion import load_pdf
+
             text = load_pdf(file_path)
         except Exception as e:
             os.remove(file_path)
@@ -599,7 +659,9 @@ async def upload_doc_ocr(
 
     if not text.strip():
         os.remove(file_path)
-        raise HTTPException(status_code=400, detail="OCR produced no readable text. Is this a valid scanned PDF?")
+        raise HTTPException(
+            status_code=400, detail="OCR produced no readable text. Is this a valid scanned PDF?"
+        )
 
     chunk_size, overlap = 6, 2
     chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
@@ -615,14 +677,24 @@ async def upload_doc_ocr(
 
     registry = load_registry()
     registry[doc_id] = {
-        "doc_id": doc_id, "file_name": filename,
+        "doc_id": doc_id,
+        "file_name": filename,
         "uploaded_at": datetime.utcnow().isoformat() + "Z",
-        "num_chunks": len(chunks), "upload_path": file_path,
-        "index_path": index_path, "chunks_path": chunks_path,
-        "chunk_size": chunk_size, "overlap": overlap,
-        "embedding_model": "all-MiniLM-L6-v2", "ocr_used": True
+        "num_chunks": len(chunks),
+        "upload_path": file_path,
+        "index_path": index_path,
+        "chunks_path": chunks_path,
+        "chunk_size": chunk_size,
+        "overlap": overlap,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "ocr_used": True,
     }
     save_registry(registry)
 
     logger.info(f"OCR-indexed '{filename}' → doc_id={doc_id}, chunks={len(chunks)}")
-    return {"message": "OCR document indexed successfully", "doc_id": doc_id, "file_name": filename, "num_chunks": len(chunks)}
+    return {
+        "message": "OCR document indexed successfully",
+        "doc_id": doc_id,
+        "file_name": filename,
+        "num_chunks": len(chunks),
+    }

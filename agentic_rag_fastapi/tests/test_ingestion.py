@@ -5,6 +5,7 @@ Tests cover: DOCX loading, PDF loading, OCR fallback,
 chunk_text behaviour (normal, short doc, edge cases).
 All file I/O uses real in-memory files via the ``sample_docx_bytes`` fixture.
 """
+
 from __future__ import annotations
 
 import io
@@ -172,7 +173,9 @@ class TestLoadDocument:
         short_text = "A" * 50  # very short — should trigger OCR
         with (
             patch("rag.ingestion.load_pdf", return_value=short_text),
-            patch("rag.ingestion.load_pdf_with_ocr", return_value="Full OCR text here " * 20) as mock_ocr,
+            patch(
+                "rag.ingestion.load_pdf_with_ocr", return_value="Full OCR text here " * 20
+            ) as mock_ocr,
         ):
             pdf_path = tmp_path / "scanned.pdf"
             pdf_path.write_bytes(b"%PDF-1.4 dummy")

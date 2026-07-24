@@ -10,7 +10,7 @@ from agents.llm import safe_generate
 
 logger = logging.getLogger("agentic_rag.agentic_loop")
 
-MAX_CONTEXT_CHARS = 14000   # Increased from 12k
+MAX_CONTEXT_CHARS = 14000  # Increased from 12k
 MAX_ITERATIONS = 2
 
 
@@ -131,6 +131,7 @@ def agentic_rag(
     # ── Chain of Thought ──────────────────────────────────────
     if reasoning_mode == "cot":
         from agents.cot_reasoner import run_cot_reasoning
+
         result = run_cot_reasoning(
             query=query,
             embedding_model=embedding_model,
@@ -158,11 +159,17 @@ def agentic_rag(
     # ── Tree of Thought ───────────────────────────────────────
     if reasoning_mode == "tot":
         from agents.tree_of_thought import (
-            generate_reasoning_tree, evaluate_branch, select_best_branch, merge_branches,
+            generate_reasoning_tree,
+            evaluate_branch,
+            select_best_branch,
+            merge_branches,
         )
         from observability.storage.db import (
-            save_reasoning_tree, save_reasoning_branch, save_branch_score,
-            save_winning_branch, save_branch_evaluation,
+            save_reasoning_tree,
+            save_reasoning_branch,
+            save_branch_score,
+            save_winning_branch,
+            save_branch_evaluation,
         )
         import time
         from datetime import datetime
@@ -173,7 +180,10 @@ def agentic_rag(
         # Evaluate branches in parallel
         evaluated_branches = []
         with ThreadPoolExecutor(max_workers=min(len(branches), 4)) as exe:
-            futures = {exe.submit(evaluate_branch, b, query, embedding_model, vector_store, top_k): b for b in branches}
+            futures = {
+                exe.submit(evaluate_branch, b, query, embedding_model, vector_store, top_k): b
+                for b in branches
+            }
             for f in as_completed(futures):
                 try:
                     evaluated_branches.append(f.result())
@@ -188,23 +198,31 @@ def agentic_rag(
         if session_id:
             save_reasoning_tree(session_id, query, timestamp, tot_latency)
             for b in ranked_branches:
-                save_reasoning_branch({
-                    "branch_id": b["branch_id"], "session_id": session_id,
-                    "branch_name": b["branch_name"],
-                    "retrieval_query": ", ".join(b["sub_queries"]),
-                    "rewritten_query": ", ".join(b.get("rewritten_queries", [])),
-                    "expected_evidence": b["expected_evidence"], "status": "EVALUATED",
-                })
-                save_branch_score({
-                    "branch_id": b["branch_id"],
-                    "retrieval_similarity": b["scores"]["retrieval_similarity"],
-                    "coverage": b["scores"]["coverage"],
-                    "completeness": b["scores"]["completeness"],
-                    "evidence_quality": b["scores"]["evidence_quality"],
-                    "confidence": b["scores"]["confidence"],
-                    "final_score": b["scores"]["final_score"],
-                })
-                save_branch_evaluation(b["branch_id"], b["evaluation_details"], b["scores"]["final_score"])
+                save_reasoning_branch(
+                    {
+                        "branch_id": b["branch_id"],
+                        "session_id": session_id,
+                        "branch_name": b["branch_name"],
+                        "retrieval_query": ", ".join(b["sub_queries"]),
+                        "rewritten_query": ", ".join(b.get("rewritten_queries", [])),
+                        "expected_evidence": b["expected_evidence"],
+                        "status": "EVALUATED",
+                    }
+                )
+                save_branch_score(
+                    {
+                        "branch_id": b["branch_id"],
+                        "retrieval_similarity": b["scores"]["retrieval_similarity"],
+                        "coverage": b["scores"]["coverage"],
+                        "completeness": b["scores"]["completeness"],
+                        "evidence_quality": b["scores"]["evidence_quality"],
+                        "confidence": b["scores"]["confidence"],
+                        "final_score": b["scores"]["final_score"],
+                    }
+                )
+                save_branch_evaluation(
+                    b["branch_id"], b["evaluation_details"], b["scores"]["final_score"]
+                )
             save_winning_branch(session_id, best_branch["branch_id"], best_branch["final_score"])
 
         sub_queries = merged_queries
@@ -221,7 +239,9 @@ def agentic_rag(
     for iteration in range(1, max_iterations + 1):
         logger.info(f"Iteration {iteration}/{max_iterations}")
 
-        fanout_results = search_fanout(current_sub_queries, embedding_model, vector_store, top_k=top_k)
+        fanout_results = search_fanout(
+            current_sub_queries, embedding_model, vector_store, top_k=top_k
+        )
         aggregated_context = trim_context(aggregate_fanout_context(fanout_results))
         intermediate_draft = build_intermediate_draft(query, aggregated_context)
         sc_result = sufficient_context_agent(query, aggregated_context, intermediate_draft)
@@ -229,16 +249,20 @@ def agentic_rag(
         if "Failed to parse" in sc_result.get("reasoning_summary", ""):
             fallback_used = True
 
-        logger.info(f"Iteration {iteration} SC: sufficient={sc_result.get('is_context_sufficient')}")
+        logger.info(
+            f"Iteration {iteration} SC: sufficient={sc_result.get('is_context_sufficient')}"
+        )
 
-        trace.append({
-            "iteration": iteration,
-            "sub_queries": current_sub_queries,
-            "fanout_results": fanout_results,
-            "aggregated_context": aggregated_context,
-            "intermediate_draft": intermediate_draft,
-            "sufficient_context_result": sc_result,
-        })
+        trace.append(
+            {
+                "iteration": iteration,
+                "sub_queries": current_sub_queries,
+                "fanout_results": fanout_results,
+                "aggregated_context": aggregated_context,
+                "intermediate_draft": intermediate_draft,
+                "sufficient_context_result": sc_result,
+            }
+        )
         final_context = aggregated_context
         final_sc_result = sc_result
 
@@ -273,23 +297,32 @@ def agentic_rag(
                 idx = ret["index"]
                 if idx not in seen_idx:
                     seen_idx.add(idx)
-                    citations.append({
-                        "chunk_index": idx,
-                        "text_preview": ret["chunk"][:200] + ("..." if len(ret["chunk"]) > 200 else ""),
-                        "score": ret["score"],
-                    })
+                    citations.append(
+                        {
+                            "chunk_index": idx,
+                            "text_preview": ret["chunk"][:200]
+                            + ("..." if len(ret["chunk"]) > 200 else ""),
+                            "score": ret["score"],
+                        }
+                    )
     citations = sorted(citations, key=lambda x: x["score"], reverse=True)[:5]
 
     return {
         "query": query,
         "answer": final_answer,
         "iterations": len(trace),
-        "context_sufficient": final_sc_result.get("is_context_sufficient", True) if final_sc_result else True,
-        "missing_information": final_sc_result.get("missing_information", []) if final_sc_result else [],
+        "context_sufficient": final_sc_result.get("is_context_sufficient", True)
+        if final_sc_result
+        else True,
+        "missing_information": final_sc_result.get("missing_information", [])
+        if final_sc_result
+        else [],
         "trace": trace,
         "final_context": final_context,
         "citations": citations,
         "fallback_used": fallback_used,
         "session_id": session_id,
-        "evidence_type": final_sc_result.get("evidence_type", "explicit") if final_sc_result else "explicit",
+        "evidence_type": final_sc_result.get("evidence_type", "explicit")
+        if final_sc_result
+        else "explicit",
     }

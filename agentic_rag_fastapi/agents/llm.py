@@ -22,6 +22,7 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
+
 # ---------------------------------------------------------------------------
 # Retry decorator: retries up to 5 times on rate-limit (429) errors.
 # Exponential back-off: 2s -> 4s -> 8s -> 16s -> 32s between attempts.

@@ -1,5 +1,6 @@
 from agents.llm import safe_generate
 
+
 def synthesis_agent(query: str, context: str):
     prompt = f"""
 You are the Synthesis Agent in an Agentic RAG system.
