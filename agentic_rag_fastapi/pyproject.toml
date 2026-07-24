@@ -25,6 +25,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+[project.urls]
+"Homepage" = "https://github.com/Pradhyut21/rag-implementation"
+"Repository" = "https://github.com/Pradhyut21/rag-implementation"
+"Bug Tracker" = "https://github.com/Pradhyut21/rag-implementation/issues"
+"Documentation" = "https://github.com/Pradhyut21/rag-implementation/blob/main/README.md"
+"Changelog" = "https://github.com/Pradhyut21/rag-implementation/blob/main/CHANGELOG.md"
+
 # ── Pytest configuration ──────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["tests"]

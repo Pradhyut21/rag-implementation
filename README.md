@@ -1,12 +1,14 @@
-# 🧠 Agentic RAG Platform v3.0
+# 🧠 Agentic RAG Platform v3.0.1
 > Enterprise Self-Correcting RAG Pipeline with Chain of Thought, Tree of Thought, and Full Observability
 
 [![CI](https://github.com/Pradhyut21/rag-implementation/actions/workflows/ci.yml/badge.svg)](https://github.com/Pradhyut21/rag-implementation/actions)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://python.org)
+[![codecov](https://codecov.io/gh/Pradhyut21/rag-implementation/branch/main/graph/badge.svg)](https://codecov.io/gh/Pradhyut21/rag-implementation)
+[![Python 3.11](https://img.shields.io/badge/python-3.11%20|%203.12-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![ADRs](https://img.shields.io/badge/ADRs-3%20decisions-purple.svg)](docs/adr/)
 
 > 📖 For a detailed technical specification of all system capabilities, see [FEATURES.md](FEATURES.md).
 

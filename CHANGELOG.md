@@ -8,6 +8,37 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+---
+
+## [3.0.1] — 2026-07-24
+
+### Added
+- **Architecture Decision Records** (`docs/adr/`): ADR-001 (FAISS), ADR-002 (Groq), ADR-003 (SQLite) documenting key architectural choices with alternative comparisons
+- **GitHub Issue Templates**: Bug report and feature request templates in `.github/ISSUE_TEMPLATE/`
+- **GitHub PR Template**: Checklist-driven pull request template in `.github/PULL_REQUEST_TEMPLATE.md`
+- **MIT LICENSE file**: Required for open-source recognition on GitHub (was missing despite README claiming MIT)
+- **`[project.urls]`** in `pyproject.toml`: Homepage, Repository, Bug Tracker, Documentation, Changelog links
+- **pytest-timeout**: 120s per-test limit added to CI to prevent hanging tests
+- **sentence-transformers model cache** in CI: `actions/cache@v4` on `/tmp/st_cache` to avoid 90MB download per run
+
+### Changed
+- **`DEMO_MODE` default**: Changed from `true` to `false` in `docker-compose.yml` and README — secure by default
+- **`docker-compose.yml` volume path**: Fixed `rag_observability` mount from `/app/observability.db` (file path) to `/app/data` (directory) — prevents Docker named volume conflict
+- **Frontend CI**: Switched from `npm ci` to `npm install --prefer-offline` with `node_modules` cache to prevent lock file mismatch failures
+- **Docker CI**: Added `cache-from/cache-to: type=gha` layer caching to reduce build time from ~8min to ~2min
+- **README links**: Replaced Windows-local `file:///d:/...` paths with relative links (were broken on GitHub)
+
+### Fixed
+- **`agents/llm.py`**: `GROQ_API_KEY` validation deferred from module import to first call via lazy `_get_client()` singleton — previously crashed entire app in fresh CI environments before `conftest.py` could set env vars
+- **`schemas.py`**: Migrated all `@validator` (Pydantic v1, deprecated) to `@field_validator` + `@classmethod` (Pydantic v2) — eliminates 4 deprecation warnings per test run; also upgraded `typing.List/Dict` to built-in `list/dict`
+- **`utils/json_utils.py`**: Replaced 3 bare `except:` clauses with `except (json.JSONDecodeError, ValueError):` — fixes Bandit S110 and Ruff E722
+- **`Dockerfile`**: CPU-only PyTorch wheels now installed before `requirements.txt` — avoids 2.5 GB CUDA download that exhausted GitHub runner disk storage
+- **CI YAML encoding**: Removed all non-ASCII characters (em-dash `—`, emoji) from workflow file names — GitHub Actions YAML parser rejected the file causing instant 0s failures with "workflow graph cannot be shown"
+
+### Security
+- `DEMO_MODE` defaults to `false` — API key enforcement is on by default in all deployments
+- `agents/llm.py` no longer exposes key validation state at module level
+
 ### Added
 - Centralized `config.py` with pydantic-settings for all runtime parameters
 - `tests/` package with 40+ unit tests across agents, ingestion, schemas, and API

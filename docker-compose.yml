@@ -15,13 +15,13 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - API_KEY=${API_KEY:-demo-rag-2026}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
-      - DEMO_MODE=${DEMO_MODE:-true}
+      - DEMO_MODE=${DEMO_MODE:-false}
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-20}
     volumes:
       - rag_uploads:/app/data/uploads
       - rag_indexes:/app/data/indexes
       - rag_debug_runs:/app/data/debug_runs
-      - rag_observability:/app/observability.db
+      - rag_observability:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
       interval: 30s
