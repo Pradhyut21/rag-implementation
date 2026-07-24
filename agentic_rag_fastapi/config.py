@@ -44,11 +44,11 @@ class Settings(BaseSettings):
 
     # ── API Security ──────────────────────────────────────────
     api_key: str = Field(
-        default="demo-rag-2026",
+        default="<your-api-key>",
         description="X-API-Key header value for endpoint protection",
     )
     demo_mode: bool = Field(
-        default=True,
+        default=False,
         description="If True, API key check is skipped (development only)",
     )
 

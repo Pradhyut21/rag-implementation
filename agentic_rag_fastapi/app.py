@@ -94,19 +94,22 @@ app.add_middleware(
 app.include_router(observability_router)
 
 # ── API Key Auth ──────────────────────────────────────────────
-API_KEY = os.getenv("API_KEY", "demo-rag-2026")
+API_KEY = os.getenv("API_KEY", "")
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
+if DEMO_MODE:
+    logger.warning("⚠️ DEMO_MODE is ENABLED — API key verification is bypassed for development.")
+
 async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
-    """Validate API key. Returns the key if valid, raises 403 if not."""
-    if api_key is None:
-        # Allow requests without key only if DEMO_MODE is on
-        if os.getenv("DEMO_MODE", "true").lower() == "true":
-            return "demo"
-        raise HTTPException(status_code=403, detail="API key required. Add X-API-Key header.")
-    if api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key.")
+    """Validate API key. Returns the key if valid, raises 401 if missing/invalid."""
+    if DEMO_MODE:
+        return "demo"
+    if not api_key:
+        raise HTTPException(status_code=401, detail="API key required. Provide X-API-Key header.")
+    if API_KEY and api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API key.")
     return api_key
 
 # ── File / Query constants ────────────────────────────────────
