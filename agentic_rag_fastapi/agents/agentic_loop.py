@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import logging
 import time
 from typing import Any
@@ -206,7 +206,7 @@ def agentic_rag(
         merged_queries, _ = merge_branches(ranked_branches)
         tot_latency = time.time() - t0
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         if session_id:
             save_reasoning_tree(session_id, query, timestamp, tot_latency)
             for b in ranked_branches:

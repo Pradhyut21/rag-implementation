@@ -1,14 +1,14 @@
-import os
 import logging
-from typing import Optional
-from groq import Groq, RateLimitError, APIStatusError
+import os
+
 from dotenv import load_dotenv
+from groq import APIStatusError, Groq, RateLimitError
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
 )
 
 load_dotenv()
@@ -19,7 +19,7 @@ logger = logging.getLogger("agentic_rag.llm")
 # Lazy singleton — key validated on first actual API call, NOT at import time.
 # This allows tests (conftest.py) to set GROQ_API_KEY before it is consumed.
 # ---------------------------------------------------------------------------
-_client: Optional[Groq] = None
+_client: Groq | None = None
 
 
 def _get_client() -> Groq:

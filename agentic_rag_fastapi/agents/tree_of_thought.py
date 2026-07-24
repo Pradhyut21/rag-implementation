@@ -1,16 +1,16 @@
-import time
 import logging
+from typing import Any
 import uuid
-from typing import List, Dict, Any, Tuple
+
 from agents.llm import safe_generate
-from utils.json_utils import extract_json_object
 from agents.rewriter import query_rewriter
 from rag.retrieval import retrieve
+from utils.json_utils import extract_json_object
 
 logger = logging.getLogger("agentic_rag.tree_of_thought")
 
 
-def generate_reasoning_tree(query: str) -> List[Dict[str, Any]]:
+def generate_reasoning_tree(query: str) -> list[dict[str, Any]]:
     """
     Generates multiple candidate reasoning branches for the query.
     Typically creates:
@@ -82,8 +82,12 @@ User Query:
 
 
 def evaluate_branch(
-    branch: Dict[str, Any], query: str, embedding_model, vector_store, top_k: int = 3
-) -> Dict[str, Any]:
+    branch: dict[str, Any],
+    query: str,
+    embedding_model: Any,
+    vector_store: Any,
+    top_k: int = 3,
+) -> dict[str, Any]:
     """
     Executes actual retrieval for a branch's sub-queries, aggregates the results,
     and calls the LLM to evaluate the retrieved content on multiple dimensions.
@@ -203,7 +207,7 @@ def score_branch(
     completeness: float,
     evidence_quality: float,
     confidence: float,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Computes a weighted final score for a branch using its dimensional ratings.
     Weights:
@@ -232,8 +236,8 @@ def score_branch(
 
 
 def select_best_branch(
-    branches: List[Dict[str, Any]],
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    branches: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """
     Ranks branches and selects the highest scoring branch.
     Returns:
@@ -245,8 +249,8 @@ def select_best_branch(
 
 
 def merge_branches(
-    branches: List[Dict[str, Any]], score_threshold: float = 0.6, margin: float = 0.15
-) -> Tuple[List[str], bool]:
+    branches: list[dict[str, Any]], score_threshold: float = 0.6, margin: float = 0.15
+) -> tuple[list[str], bool]:
     """
     Optionally merges the top branches if they are both above the threshold and close in score.
     Returns:

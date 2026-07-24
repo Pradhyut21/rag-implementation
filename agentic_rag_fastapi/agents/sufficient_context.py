@@ -13,7 +13,6 @@ to answer the user's query. Returns a structured verdict with:
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 

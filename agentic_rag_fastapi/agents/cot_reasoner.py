@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import logging
 import time
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 import uuid
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from agents.llm import safe_generate
 from agents.planner import planner_agent
@@ -34,7 +37,7 @@ def run_cot_reasoning(
     logger.info(f"Running CoT reasoning workflow for session: {session_id}")
 
     # Save the root reasoning chain entry
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
     save_reasoning_chain(session_id, query, timestamp)
 
     stages_log: list[dict[str, Any]] = []
@@ -53,7 +56,7 @@ def run_cot_reasoning(
             result, output_summary = action_fn()
         except Exception as e:
             status = "FAILED"
-            output_summary = f"Stage failed with error: {str(e)}"
+            output_summary = f"Stage failed with error: {e!s}"
             logger.error(f"Error in stage {name}: {e}")
 
         duration = time.time() - start_time
@@ -67,7 +70,7 @@ def run_cot_reasoning(
             "output_summary": output_summary,
             "execution_time": round(duration, 3),
             "status": status,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Save to SQLite db
@@ -80,7 +83,7 @@ def run_cot_reasoning(
         return result, stage_data
 
     # --- Step 1: Understand the user query ---
-    def stage_1_action():
+    def stage_1_action() -> tuple[str, str]:
         prompt = f"""
 Analyze the user query below. Write a short explanation of what the user is asking, identifying the core topic, implicit constraints, and subject area.
 Do not use markdown formatting. Keep it to 2-3 sentences.
@@ -96,7 +99,7 @@ Query:
     )
 
     # --- Step 2: Identify required information ---
-    def stage_2_action():
+    def stage_2_action() -> tuple[str, str]:
         prompt = f"""
 Given this query analysis: "{query_analysis}",
 List the critical factual points, details, or documentation segments required to answer the query accurately.
@@ -113,7 +116,7 @@ Do not use markdown formatting. Keep it concise.
     )
 
     # --- Step 3: Determine retrieval strategy ---
-    def stage_3_action():
+    def stage_3_action() -> tuple[list[str], str]:
         sub_queries = planner_agent(query)
         summary = f"Planner split query into sub-queries: {sub_queries}"
         return sub_queries, summary
@@ -126,7 +129,7 @@ Do not use markdown formatting. Keep it concise.
     )
 
     # --- Step 4: Retrieve supporting evidence ---
-    def stage_4_action():
+    def stage_4_action() -> tuple[tuple[str, list[dict[str, Any]]], str]:
         retrieved_results = []
         rewritten_queries = []
 
@@ -163,7 +166,7 @@ Do not use markdown formatting. Keep it concise.
     draft_prompt = f"Use the context to answer the query:\nQUERY: {query}\nCONTEXT: {aggregated_context}\nWrite a draft answer."
     intermediate_draft = safe_generate(draft_prompt)
 
-    def stage_5_action():
+    def stage_5_action() -> tuple[dict[str, Any], str]:
         sc_result = sufficient_context_agent(query, aggregated_context, intermediate_draft)
         summary = (
             f"Context Sufficient: {sc_result['is_context_sufficient']}. "
@@ -180,7 +183,7 @@ Do not use markdown formatting. Keep it concise.
     )
 
     # --- Step 6: Generate grounded answer ---
-    def stage_6_action():
+    def stage_6_action() -> tuple[str, str]:
         final_answer = synthesis_agent(query, aggregated_context)
         summary = f"Grounded answer synthesized. Length: {len(final_answer)} characters."
         return final_answer, summary

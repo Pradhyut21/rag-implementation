@@ -8,6 +8,7 @@ optimized for dense vector retrieval (FAISS + sentence-transformers).
 from __future__ import annotations
 
 import logging
+
 import agents.llm as llm
 
 logger = logging.getLogger("agentic_rag.rewriter")

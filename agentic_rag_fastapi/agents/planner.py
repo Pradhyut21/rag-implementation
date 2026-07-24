@@ -9,6 +9,7 @@ This narrows the retrieval space and improves FAISS recall.
 from __future__ import annotations
 
 import logging
+
 import agents.llm as llm
 from utils.json_utils import extract_json_object
 
