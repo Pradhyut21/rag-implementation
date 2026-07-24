@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import threading
+from typing import Any
 import uuid
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
@@ -118,7 +119,7 @@ if DEMO_MODE:
 async def login_for_access_token(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
-):
+) -> dict[str, str]:
     """
     Authenticate with username + password and receive a JWT stored in an httpOnly cookie.
     Also returns access_token in body for headless API clients.
@@ -147,14 +148,14 @@ async def login_for_access_token(
 
 
 @app.post("/auth/logout", tags=["Auth"], summary="Clear authentication cookie")
-async def logout(response: Response):
+async def logout(response: Response) -> dict[str, str]:
     """Clear the httpOnly authentication cookie."""
     response.delete_cookie(key=COOKIE_NAME, httponly=True, samesite="lax", path="/")
     return {"message": "Logged out successfully"}
 
 
 @app.get("/auth/me", tags=["Auth"], summary="Get current logged in user")
-async def get_me(current_user: dict = Depends(get_current_user)):
+async def get_me(current_user: dict = Depends(get_current_user)) -> dict[str, Any]:
     """Return user info for the currently authenticated session."""
     return {"username": current_user["username"], "role": current_user.get("role", "user")}
 
@@ -191,7 +192,7 @@ def load_registry() -> dict:
             return {}
 
 
-def save_registry(registry: dict):
+def save_registry(registry: dict) -> None:
     """Atomic write using a temp file + os.replace to prevent corruption."""
     with _registry_lock:
         try:
@@ -234,7 +235,7 @@ def get_vector_store_for_doc(doc_id: str) -> VectorStore:
         logger.info(f"Loaded and cached VectorStore for doc_id: {doc_id}")
         return vs
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load vector store: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Failed to load vector store: {e!s}") from e
 
 
 # ── Sanitize filename ─────────────────────────────────────────
@@ -247,7 +248,7 @@ def safe_filename(filename: str) -> str:
 
 
 # ── Helpers ───────────────────────────────────────────────────
-def validate_query(query: str):
+def validate_query(query: str) -> None:
     if not query or not query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
     if len(query) > MAX_QUERY_LENGTH:
@@ -261,12 +262,12 @@ def validate_query(query: str):
 
 
 @app.get("/", tags=["Health"])
-def read_root():
+def read_root() -> dict[str, str]:
     return {"message": "Enterprise Agentic RAG API v3.0", "docs": "/docs", "health": "/health"}
 
 
 @app.get("/health", tags=["Health"])
-def health():
+def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "version": "3.0",
@@ -282,7 +283,7 @@ async def upload_doc(
     request: Request,
     file: UploadFile = File(...),
     _key: dict = Depends(get_current_user),
-):
+) -> UploadDocResponse:
     filename = file.filename or "upload"
     filename = safe_filename(filename)
 
@@ -312,7 +313,7 @@ async def upload_doc(
         with open(file_path, "wb") as f:
             f.write(content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e!s}") from e
 
     # Extract text
     try:
@@ -320,7 +321,7 @@ async def upload_doc(
     except Exception as e:
         if os.path.exists(file_path):
             os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to parse document: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse document: {e!s}") from e
 
     if not text.strip():
         if os.path.exists(file_path):
@@ -341,7 +342,7 @@ async def upload_doc(
         embeddings = embedding_model.embed_texts(chunks)
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Embedding failed: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Embedding failed: {e!s}") from e
 
     try:
         vs = VectorStore()
@@ -353,7 +354,7 @@ async def upload_doc(
             loaded_vector_stores[doc_id] = vs
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"Index build failed: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Index build failed: {e!s}") from e
 
     registry = load_registry()
     registry[doc_id] = {
@@ -386,7 +387,7 @@ def ask_question(
     request: Request,
     body: QueryRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> AskResponse | dict[str, Any]:
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
     try:
@@ -403,7 +404,7 @@ def ask_question(
         return result
     except Exception as e:
         logger.exception(f"Agentic RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}") from e
 
 
 # ── Ask (Vanilla) ─────────────────────────────────────────────
@@ -413,7 +414,7 @@ def vanilla_question(
     request: Request,
     body: QueryRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> VanillaAskResponse | dict[str, Any]:
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
     try:
@@ -423,7 +424,7 @@ def vanilla_question(
         return result
     except Exception as e:
         logger.exception(f"Vanilla RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}") from e
 
 
 # ── Ask Debug ─────────────────────────────────────────────────
@@ -433,7 +434,7 @@ def ask_debug_question(
     request: Request,
     body: QueryRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> AskDebugResponse | dict[str, Any]:
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
     try:
@@ -467,7 +468,7 @@ def ask_debug_question(
         return response_data
     except Exception as e:
         logger.exception(f"Debug RAG failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {e!s}") from e
 
 
 # ── Streaming Ask (SSE) ───────────────────────────────────────
@@ -477,7 +478,7 @@ async def stream_ask(
     request: Request,
     body: QueryRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> EventSourceResponse:
     """
     Server-Sent Events endpoint.
     Emits: stage_update, result, error events.
@@ -485,12 +486,12 @@ async def stream_ask(
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
 
-    async def event_generator():
+    async def event_generator() -> Any:
         import asyncio
 
         executor = ThreadPoolExecutor(max_workers=1)
 
-        def run_pipeline():
+        def run_pipeline() -> dict[str, Any]:
             return agentic_rag(
                 query=body.query,
                 embedding_model=embedding_model,
@@ -549,7 +550,7 @@ async def stream_ask(
 
 # ── Document Management ───────────────────────────────────────
 @app.get("/documents", response_model=list[DocumentInfoResponse], tags=["Documents"])
-def list_documents():
+def list_documents() -> list[DocumentInfoResponse]:
     registry = load_registry()
     docs = list(registry.values())
     docs.sort(key=lambda x: x.get("uploaded_at", ""), reverse=True)
@@ -557,7 +558,7 @@ def list_documents():
 
 
 @app.get("/documents/{doc_id}", response_model=DocumentInfoResponse, tags=["Documents"])
-def get_document(doc_id: str):
+def get_document(doc_id: str) -> DocumentInfoResponse:
     return get_doc_metadata(doc_id)
 
 
@@ -565,7 +566,7 @@ def get_document(doc_id: str):
 def delete_document(
     doc_id: str,
     _key: dict = Depends(get_current_user),
-):
+) -> dict[str, str]:
     registry = load_registry()
     if doc_id not in registry:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found.")
@@ -591,7 +592,7 @@ def retrieve_only_endpoint(
     request: Request,
     body: RetrieveOnlyRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> RetrieveOnlyResponse | dict[str, Any]:
     validate_query(body.query)
     vs = get_vector_store_for_doc(body.doc_id)
     try:
@@ -605,7 +606,7 @@ def retrieve_only_endpoint(
             ],
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/plan", response_model=PlanResponse, tags=["Agents"])
@@ -614,12 +615,12 @@ def plan_query(
     request: Request,
     body: PlanRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> PlanResponse | dict[str, Any]:
     validate_query(body.query)
     try:
         return {"query": body.query, "sub_queries": planner_agent(body.query)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/rewrite", response_model=RewriteResponse, tags=["Agents"])
@@ -628,34 +629,34 @@ def rewrite_query_endpoint(
     request: Request,
     body: RewriteRequest,
     _key: dict = Depends(get_current_user),
-):
+) -> RewriteResponse | dict[str, Any]:
     validate_query(body.query)
     try:
         return {"query": body.query, "rewritten_query": query_rewriter(body.query)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── Reasoning Telemetry ───────────────────────────────────────
 
 
 @app.get("/reasoning/cot/{session_id}", tags=["Reasoning"])
-def get_reasoning_cot(session_id: str):
+def get_reasoning_cot(session_id: str) -> dict[str, Any] | None:
     return get_reasoning_chain_details(session_id)
 
 
 @app.get("/reasoning/chain/{session_id}", tags=["Reasoning"])
-def get_reasoning_chain(session_id: str):
+def get_reasoning_chain(session_id: str) -> dict[str, Any] | None:
     return get_reasoning_chain_details(session_id)
 
 
 @app.get("/reasoning/tot/{session_id}", tags=["Reasoning"])
-def get_reasoning_tot(session_id: str):
+def get_reasoning_tot(session_id: str) -> dict[str, Any] | None:
     return get_reasoning_tree_details(session_id)
 
 
 @app.get("/reasoning/tree/{session_id}", tags=["Reasoning"])
-def get_reasoning_tree(session_id: str):
+def get_reasoning_tree(session_id: str) -> dict[str, Any] | None:
     return get_reasoning_tree_details(session_id)
 
 
@@ -666,7 +667,7 @@ async def upload_doc_ocr(
     request: Request,
     file: UploadFile = File(...),
     _key: dict = Depends(get_current_user),
-):
+) -> UploadDocResponse | dict[str, Any]:
     """Upload a scanned PDF — uses OCR (Tesseract/Unstructured) to extract text."""
     filename = safe_filename(file.filename or "scan.pdf")
     if not filename.lower().endswith(".pdf"):
@@ -697,10 +698,10 @@ async def upload_doc_ocr(
             text = load_pdf(file_path)
         except Exception as e:
             os.remove(file_path)
-            raise HTTPException(status_code=500, detail=f"Failed to extract text: {e!s}")
+            raise HTTPException(status_code=500, detail=f"Failed to extract text: {e!s}") from e
     except Exception as e:
         os.remove(file_path)
-        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {e!s}")
+        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {e!s}") from e
 
     if not text.strip():
         os.remove(file_path)
