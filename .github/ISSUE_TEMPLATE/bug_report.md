@@ -3,45 +3,38 @@ name: Bug Report
 about: Report a reproducible bug in the Agentic RAG Platform
 title: "[BUG] "
 labels: ["bug", "needs-triage"]
-assignees: ""
+assignees: []
 ---
 
 ## Bug Description
-
-<!-- A clear, concise description of the bug -->
+A clear and concise description of what the bug is.
 
 ## Steps to Reproduce
+1. Upload a document via `POST /upload-doc`
+2. Query with `POST /ask` using `reasoning_mode: "cot"`
+3. Observe the error
 
-1. 
-2. 
-3. 
+## Expected Behavior
+What you expected to happen.
 
-## Expected Behaviour
-
-<!-- What should happen -->
-
-## Actual Behaviour
-
-<!-- What actually happens -->
-
-## Error Output
-
-```
-Paste the full stack trace or error message here
-```
+## Actual Behavior
+What actually happened. Include the full error message/stack trace if available.
 
 ## Environment
+- OS: [e.g. Ubuntu 22.04, Windows 11]
+- Python version: [e.g. 3.11.5]
+- Docker version (if applicable): [e.g. 24.0.5]
+- Browser (if frontend issue): [e.g. Chrome 120]
+- Deployment method: [local | docker-compose]
 
-- **OS**: [e.g., Ubuntu 22.04 / Windows 11]
-- **Python version**: [e.g., 3.11.5]
-- **Node version** (frontend bugs): [e.g., 20.11.0]
-- **Groq model**: [e.g., llama-3.3-70b-versatile]
-- **Reasoning mode**: [standard / cot / tot]
-
-## Relevant Files
-
-<!-- If applicable, list files where the bug occurs -->
+## Minimal Reproduction
+```bash
+curl -X POST http://localhost:8002/ask \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "...", "doc_id": "abc12345"}'
+```
 
 ## Additional Context
-
-<!-- Any other context (screenshots, logs, etc.) -->
+- Observability session_id (if available):
+- Relevant logs from `docker logs rag_backend`:

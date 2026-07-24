@@ -1,50 +1,32 @@
-## Description
-
-<!-- A clear, concise description of what this PR does -->
+## Summary
+<!-- One-paragraph description of the change and its motivation -->
 
 ## Type of Change
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] New feature (non-breaking change that adds functionality)
+- [ ] Breaking change (fix or feature that causes existing functionality to change)
+- [ ] Documentation update
+- [ ] CI/DevOps change
+- [ ] Refactor (no functional change)
 
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 🔒 Security fix
-- [ ] ♻️ Code refactor (no functional changes)
-- [ ] 📚 Documentation update
-- [ ] 🧪 Test improvement
-- [ ] ⚡ Performance improvement
-
-## Related Issue
-
+## Related Issues
 Closes #<!-- issue number -->
 
 ## Changes Made
-
-<!-- List the specific changes this PR introduces -->
-- 
-- 
-- 
+<!-- List the specific files and changes -->
+- `agents/`: 
+- `rag/`:
+- `tests/`:
 
 ## Testing
-
-- [ ] Unit tests added / updated
-- [ ] Integration tests pass locally (`pytest tests/ -m integration`)
-- [ ] Manual testing performed — describe what was tested:
+- [ ] All 84 existing tests pass (`pytest tests/ -v`)
+- [ ] New tests added for new functionality
+- [ ] Tested locally with Docker Compose
+- [ ] Tested with real GROQ_API_KEY end-to-end
 
 ## Checklist
-
-- [ ] My code follows the project's style guide (passes `ruff check .`)
-- [ ] I have added docstrings / type annotations to new functions
-- [ ] I have updated the README if the API or configuration changed
-- [ ] I have added tests that prove my fix / feature works
-- [ ] All existing tests pass (`pytest tests/ -m unit`)
-- [ ] I have run `bandit -r .` and addressed HIGH/MEDIUM findings
-- [ ] No secrets or credentials are committed
-- [ ] The Docker build still works (`docker build ./agentic_rag_fastapi`)
-
-## Screenshots (if applicable)
-
-<!-- Add before/after screenshots for UI changes -->
-
-## Notes for Reviewer
-
-<!-- Any additional context for the reviewer -->
+- [ ] Code follows the existing style (ruff check passes)
+- [ ] Self-review of my own code completed
+- [ ] No secrets or credentials committed
+- [ ] Documentation updated if needed (README, FEATURES.md, CHANGELOG.md)
+- [ ] Observability traces validated in dashboard for new endpoints

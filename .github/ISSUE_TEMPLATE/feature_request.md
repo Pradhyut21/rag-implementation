@@ -1,35 +1,23 @@
 ---
 name: Feature Request
-about: Suggest an enhancement or new feature
+about: Suggest a new feature or enhancement for the platform
 title: "[FEAT] "
 labels: ["enhancement"]
-assignees: ""
+assignees: []
 ---
 
 ## Problem Statement
-
-<!-- What problem does this feature solve? Who is affected? -->
+What problem does this feature solve? Who would benefit from it?
 
 ## Proposed Solution
-
-<!-- Describe your preferred approach -->
+Describe the feature and how it would work.
 
 ## Alternatives Considered
-
-<!-- What other approaches did you consider and why did you reject them? -->
+List any alternative approaches you considered and why you chose this one.
 
 ## Implementation Notes
-
-<!-- Technical details, affected components, migration concerns -->
+Any technical considerations, constraints, or dependencies.
 
 ## Acceptance Criteria
-
-- [ ] 
-- [ ] 
-- [ ] 
-
-## Priority / Impact
-
-- **Who benefits**: [everyone / power users / developers]
-- **Effort estimate**: [small / medium / large]
-- **Breaking change**: [yes / no]
+- [ ] Criterion 1
+- [ ] Criterion 2

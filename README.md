@@ -259,6 +259,18 @@ agentic-rag/
 
 ---
 
+## 📐 Architecture Decision Records
+
+Key technical decisions are documented as ADRs in [`docs/adr/`](docs/adr/):
+
+| ADR | Decision | Why |
+|-----|----------|-----|
+| [ADR-001](docs/adr/ADR-001-faiss-vector-store.md) | **FAISS** over ChromaDB/Pinecone | Zero-latency in-process search; no network hop for 6–9 queries/request |
+| [ADR-002](docs/adr/ADR-002-groq-llm-provider.md) | **Groq LPU** over OpenAI/Anthropic | 4–8× faster (0.8s vs 3–8s per call); free tier covers demo load |
+| [ADR-003](docs/adr/ADR-003-sqlite-observability.md) | **SQLite** over PostgreSQL/Prometheus | Zero config, ACID, relational joins for replay; SQLAlchemy abstraction ready for PG migration |
+
+---
+
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE)
