@@ -168,7 +168,6 @@ jobs:
             --cov=. \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
-            --cov-omit="tests/*,venv/*,data/*" \
             -v \
             --timeout=120
 

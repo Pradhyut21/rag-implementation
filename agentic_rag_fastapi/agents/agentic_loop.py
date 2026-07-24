@@ -1,12 +1,15 @@
-import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from __future__ import annotations
 
-from rag.retrieval import retrieve, format_context
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+from typing import Any
+
+from agents.llm import safe_generate
 from agents.planner import planner_agent
 from agents.rewriter import query_rewriter
 from agents.sufficient_context import sufficient_context_agent
 from agents.synthesis import synthesis_agent
-from agents.llm import safe_generate
+from rag.retrieval import format_context, retrieve
 
 logger = logging.getLogger("agentic_rag.agentic_loop")
 
@@ -28,7 +31,9 @@ Write a concise draft answer grounded only in the context."""
     return safe_generate(prompt)
 
 
-def _process_single_subquery(sq: str, embedding_model, vector_store, top_k: int) -> dict:
+def _process_single_subquery(
+    sq: str, embedding_model: Any, vector_store: Any, top_k: int
+) -> dict[str, Any]:
     """Worker function for parallel fanout — runs in thread pool."""
     rewritten = query_rewriter(sq)
     retrieved = retrieve(rewritten, embedding_model, vector_store, top_k=top_k)
@@ -39,17 +44,24 @@ def _process_single_subquery(sq: str, embedding_model, vector_store, top_k: int)
     }
 
 
-def search_fanout(sub_queries, embedding_model, vector_store, top_k=3):
+def search_fanout(
+    sub_queries: list[str],
+    embedding_model: Any,
+    vector_store: Any,
+    top_k: int = 3,
+) -> list[dict[str, Any]]:
     """
     Parallelised fan-out retrieval.
     All sub-queries are processed concurrently via ThreadPoolExecutor,
-    cutting latency from O(N × LLM_time) to O(max_LLM_time).
+    cutting latency from O(N * LLM_time) to O(max_LLM_time).
     """
-    results = [None] * len(sub_queries)
+    results: list[dict[str, Any] | None] = [None] * len(sub_queries)
 
     with ThreadPoolExecutor(max_workers=min(len(sub_queries), 6)) as executor:
         future_to_idx = {
-            executor.submit(_process_single_subquery, sq, embedding_model, vector_store, top_k): i
+            executor.submit(
+                _process_single_subquery, sq, embedding_model, vector_store, top_k
+            ): i
             for i, sq in enumerate(sub_queries)
         }
         for future in as_completed(future_to_idx):
@@ -64,14 +76,14 @@ def search_fanout(sub_queries, embedding_model, vector_store, top_k=3):
                     "retrieved": [],
                 }
 
-    return results
+    return [r for r in results if r is not None]
 
 
-def aggregate_fanout_context(fanout_results):
+def aggregate_fanout_context(fanout_results: list[dict[str, Any]]) -> str:
     seen = set()
     ordered_chunks = []
     for item in fanout_results:
-        for r in item["retrieved"]:
+        for r in item.get("retrieved", []):
             chunk = r["chunk"]
             if chunk not in seen:
                 seen.add(chunk)
@@ -90,7 +102,9 @@ def trim_context(context: str, max_chars: int = MAX_CONTEXT_CHARS) -> str:
     return trimmed
 
 
-def vanilla_rag(query: str, embedding_model, vector_store, top_k: int = 5):
+def vanilla_rag(
+    query: str, embedding_model: Any, vector_store: Any, top_k: int = 5
+) -> dict[str, Any]:
     logger.info(f"Vanilla RAG: {query!r}")
     retrieved = retrieve(query, embedding_model, vector_store, top_k=top_k)
     context = format_context(retrieved)
@@ -98,7 +112,8 @@ def vanilla_rag(query: str, embedding_model, vector_store, top_k: int = 5):
     citations = [
         {
             "chunk_index": r["index"],
-            "text_preview": r["chunk"][:200] + ("..." if len(r["chunk"]) > 200 else ""),
+            "text_preview": r["chunk"][:200]
+            + ("..." if len(r["chunk"]) > 200 else ""),
             "score": r["score"],
         }
         for r in retrieved
@@ -114,12 +129,12 @@ def vanilla_rag(query: str, embedding_model, vector_store, top_k: int = 5):
 
 def agentic_rag(
     query: str,
-    embedding_model,
-    vector_store,
+    embedding_model: Any,
+    vector_store: Any,
     max_iterations: int = MAX_ITERATIONS,
     top_k: int = 3,
     reasoning_mode: str = "standard",
-):
+) -> dict[str, Any]:
     logger.info(f"Agentic RAG | query={query!r} | mode={reasoning_mode}")
 
     import uuid as _uuid
