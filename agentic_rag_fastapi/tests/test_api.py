@@ -223,7 +223,7 @@ class TestQueryEndpoints:
     def test_plan_endpoint_returns_sub_queries(self, client, auth_headers):
         """POST /plan must return a list of sub-queries."""
         with patch(
-            "agents.planner.planner_agent",
+            "app.planner_agent",
             return_value=["Sub-query 1", "Sub-query 2"],
         ):
             resp = client.post(
@@ -239,7 +239,7 @@ class TestQueryEndpoints:
     @pytest.mark.unit
     def test_rewrite_endpoint_returns_rewritten_query(self, client, auth_headers):
         """POST /rewrite must return the rewritten_query field."""
-        with patch("agents.rewriter.query_rewriter", return_value="dense retrieval query"):
+        with patch("app.query_rewriter", return_value="dense retrieval query"):
             resp = client.post(
                 "/rewrite",
                 json={"query": "What is the latency?"},

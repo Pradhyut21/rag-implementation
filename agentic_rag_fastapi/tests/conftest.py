@@ -31,7 +31,7 @@ os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:5173")
 # ---------------------------------------------------------------------------
 # FastAPI TestClient (session-scoped — created once per test run)
 # ---------------------------------------------------------------------------
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def client() -> Generator[TestClient, None, None]:
     """
     Return a FastAPI TestClient with real routing but mocked external I/O.

@@ -155,7 +155,7 @@ class TestLoadDocument:
         """load_document dispatches .pdf files to load_pdf."""
         from rag.ingestion import load_document, load_pdf
 
-        with patch("rag.ingestion.load_pdf", return_value="PDF text content") as mock_pdf:
+        with patch("rag.ingestion.load_pdf", return_value="PDF text content " * 20) as mock_pdf:
             pdf_path = tmp_path / "doc.pdf"
             pdf_path.write_bytes(b"%PDF-1.4 dummy")
             result = load_document(str(pdf_path))

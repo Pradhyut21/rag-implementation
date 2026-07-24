@@ -20,10 +20,7 @@ class TestPlannerAgent:
     @pytest.mark.unit
     def test_returns_list_of_strings(self):
         """planner_agent must always return a list[str]."""
-        with patch(
-            "agents.llm.safe_generate",
-            return_value='["What is RAG?", "How does retrieval work?"]',
-        ):
+        with patch("agents.llm.safe_generate", return_value='["What is RAG?", "How does retrieval work?"]'):
             from agents.planner import planner_agent
 
             result = planner_agent("Explain RAG architecture")
