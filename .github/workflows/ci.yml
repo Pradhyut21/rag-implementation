@@ -148,7 +148,7 @@ jobs:
             --index-url https://download.pytorch.org/whl/cpu \
             --timeout 300
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-asyncio httpx pydantic-settings
+          pip install pytest pytest-cov pytest-asyncio pytest-timeout httpx pydantic-settings
 
       - name: Download NLTK data
         run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')" || true

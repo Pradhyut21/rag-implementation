@@ -493,9 +493,14 @@ function DevTools({ selectedDocId }) {
 
   const run = async (key, fn, payload) => {
     setLoading(l => ({ ...l, [key]: true }));
-    try { setResults(r => ({ ...r, [key]: (await fn(payload)).data })); }
-    catch (e) { console.error(e); }
-    finally { setLoading(l => ({ ...l, [key]: false })); }
+    try {
+      const res = await fn(payload);
+      setResults(r => ({ ...r, [key]: res.data }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(l => ({ ...l, [key]: false }));
+    }
   };
 
   const toolCard = (title, icon, color, children) => (
