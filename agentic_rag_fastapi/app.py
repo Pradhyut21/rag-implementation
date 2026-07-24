@@ -6,7 +6,7 @@ import os
 import threading
 import uuid
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 import nltk
@@ -108,7 +108,7 @@ app.add_middleware(
 app.include_router(observability_router)
 
 # ── JWT Auth (replaces shared API key) ────────────────────────
-from auth import authenticate_user, create_access_token, get_current_user
+from auth import COOKIE_NAME, authenticate_user, create_access_token, get_current_user
 
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
@@ -116,14 +116,14 @@ if DEMO_MODE:
     logger.warning("⚠️ DEMO_MODE is ENABLED — JWT auth verification is bypassed for development.")
 
 
-@app.post("/auth/token", tags=["Auth"], summary="Obtain JWT access token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+@app.post("/auth/token", tags=["Auth"], summary="Obtain JWT access token via httpOnly cookie")
+async def login_for_access_token(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
     """
-    Authenticate with username + password and receive a JWT Bearer token.
-
-    Demo credentials: username=admin  password=demo-rag-2026
-
-    Use the returned token as: Authorization: Bearer <token>
+    Authenticate with username + password and receive a JWT stored in an httpOnly cookie.
+    Also returns access_token in body for headless API clients.
     """
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -133,8 +133,32 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token(data={"sub": user["username"]})
+
+    # Set httpOnly cookie (XSS protected)
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,  # Set to True in HTTPS production environments
+        max_age=8 * 3600,
+        path="/",
+    )
     logger.info(f"JWT issued for user: {user['username']}")
-    return {"access_token": token, "token_type": "bearer"}
+    return {"username": user["username"], "access_token": token, "token_type": "bearer"}
+
+
+@app.post("/auth/logout", tags=["Auth"], summary="Clear authentication cookie")
+async def logout(response: Response):
+    """Clear the httpOnly authentication cookie."""
+    response.delete_cookie(key=COOKIE_NAME, httponly=True, samesite="lax", path="/")
+    return {"message": "Logged out successfully"}
+
+
+@app.get("/auth/me", tags=["Auth"], summary="Get current logged in user")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Return user info for the currently authenticated session."""
+    return {"username": current_user["username"], "role": current_user.get("role", "user")}
 
 
 # ── File / Query constants ────────────────────────────────────

@@ -16,9 +16,10 @@ function getAuthToken() {
 const client = axios.create({
   baseURL: API_URL,
   timeout: 120000, // 2 min timeout for long queries
+  withCredentials: true, // Automatically send httpOnly access_token cookie
 });
 
-// Request interceptor — inject JWT Bearer token on every request
+// Request interceptor — inject JWT Bearer token on every request (if present in local state for API compat)
 client.interceptors.request.use((config) => {
   const token = getAuthToken();
   if (token) {
@@ -65,6 +66,7 @@ export function streamAsk(payload, callbacks) {
 
   fetch(`${API_URL}/stream-ask`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(getAuthToken() ? { 'Authorization': `Bearer ${getAuthToken()}` } : {}),

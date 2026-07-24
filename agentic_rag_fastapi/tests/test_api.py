@@ -303,3 +303,40 @@ class TestSecurityEndpoints:
         schema = resp.json()
         assert "paths" in schema
         assert "components" in schema
+
+    @pytest.mark.unit
+    def test_auth_token_login_sets_cookie(self, client):
+        """POST /auth/token sets httpOnly access_token cookie."""
+        resp = client.post(
+            "/auth/token",
+            data={"username": "admin", "password": "demo-rag-2026"},
+        )
+        assert resp.status_code == 200
+        assert "set-cookie" in resp.headers
+        assert "access_token=" in resp.headers["set-cookie"]
+        assert "HttpOnly" in resp.headers["set-cookie"] or "httponly" in resp.headers["set-cookie"]
+
+    @pytest.mark.unit
+    def test_auth_logout_clears_cookie(self, client):
+        """POST /auth/logout sets expired cookie header (Max-Age=0 / expired date)."""
+        resp = client.post("/auth/logout")
+        assert resp.status_code == 200
+        assert "set-cookie" in resp.headers
+        cookie_header = resp.headers["set-cookie"].lower()
+        # Starlette delete_cookie sets max-age=0 or expires=Thu, 01 Jan 1970
+        assert "max-age=0" in cookie_header or "expires=thu, 01 jan 1970" in cookie_header
+
+    @pytest.mark.unit
+    def test_auth_me_returns_user_info(self, client):
+        """GET /auth/me with cookie returns active user info."""
+        login_resp = client.post(
+            "/auth/token",
+            data={"username": "admin", "password": "demo-rag-2026"},
+        )
+        assert login_resp.status_code == 200
+
+        me_resp = client.get("/auth/me", cookies=login_resp.cookies)
+        assert me_resp.status_code == 200
+        body = me_resp.json()
+        assert body["username"] == "admin"
+        assert "role" in body
