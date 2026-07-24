@@ -69,32 +69,30 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       # ── Build and push backend ──────────────────────────
-      - name: Build and push backend image
+      - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./agentic_rag_fastapi
           file: ./agentic_rag_fastapi/Dockerfile
-          push: true
+          push: false
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
 
       # ── Build and push frontend ─────────────────────────
-      - name: Build and push frontend image
+      - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile.frontend
-          push: true
+          push: false
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
-          platforms: linux/amd64,linux/arm64
 
   # ──────────────────────────────────────────────────────────
   # Create GitHub Release on version tags
